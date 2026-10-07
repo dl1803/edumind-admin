@@ -4,6 +4,9 @@ export const APP_CONFIG = {
   DEFAULT_PAGE_SIZE: 10,
 };
 
+export const API_BASE_URL = APP_CONFIG.API_BASE_URL;
+export const APP_NAME = APP_CONFIG.APP_NAME;
+
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: "edumind_admin_access_token",
   REFRESH_TOKEN: "edumind_admin_refresh_token",
