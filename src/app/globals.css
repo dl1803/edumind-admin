@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
-/* ========================================================
+/* 
    DESIGN SYSTEM TOKENS — EDUMIND (Tailwind CSS v4)
-   ======================================================== */
+    */
 @theme {
   /* 1. PRIMARY BRAND COLORS (Royal Purple Scale) */
   --color-primary-50: #FAF5FF;
@@ -46,9 +46,7 @@
   --shadow-sidebar: 2px 0 12px rgba(124, 58, 237, 0.03);
 }
 
-/* ========================================================
-   CUSTOM UTILITY CLASSES (Dải Gradient Nebula & Hiệu ứng)
-   ======================================================== */
+/* CUSTOM UTILITY CLASSES (Dải Gradient Nebula & Hiệu ứng) */
 @utility grad-nebula {
   background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 50%, #EC4899 100%);
 }
