@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { ToastContainer } from "@/components/ui/Toast";
 import "./globals.css";
 
 const inter = Inter({
@@ -20,7 +21,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" className={inter.variable}>
-      <body className="min-h-screen">{children}</body>
+      <body className="min-h-screen">
+        {children}
+        <ToastContainer />
+      </body>
     </html>
   );
 }

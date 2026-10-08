@@ -22,8 +22,12 @@ jest.mock('axios', () => {
 describe('apiClient Interceptor', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        delete (window as unknown as { location: unknown }).location;
-        window.location = { href: '' } as unknown as Location;
+        delete (window as unknown as { location?: unknown }).location;
+        Object.defineProperty(window, 'location', {
+            value: { href: '' },
+            writable: true,
+            configurable: true,
+        });
     });
 
     it('gắn Bearer Token khi TokenStorage có access token', async () => {

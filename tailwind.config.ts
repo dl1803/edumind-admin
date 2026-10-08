@@ -42,6 +42,25 @@ const config: Config = {
       backgroundImage: {
         nebula: "linear-gradient(90deg, #3B82F6 0%, #8B5CF6 50%, #EC4899 100%)",
       },
+      keyframes: {
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "slide-in-right": {
+          "0%": { transform: "translateX(16px)", opacity: "0" },
+          "100%": { transform: "translateX(0)", opacity: "1" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+      },
+      animation: {
+        "fade-in": "fade-in 150ms ease-out",
+        "slide-in-right": "slide-in-right 200ms ease-out",
+        shimmer: "shimmer 1200ms linear infinite",
+      },
     },
   },
   plugins: [],
