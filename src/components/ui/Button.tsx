@@ -12,60 +12,57 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   fullWidth?: boolean;
 }
 
-const variantClasses: Record<ButtonVariant, string> = {
-  primary: "bg-nebula text-white hover:brightness-95",
-  outlined: "border border-primary-600 text-primary-700 hover:bg-primary-50",
-  ghost: "text-primary-700 hover:bg-primary-50",
-  destructive: "bg-error-600 text-white hover:brightness-90",
-};
-
-const sizeClasses: Record<ButtonSize, string> = {
-  md: "h-12 px-6 text-sm font-medium rounded-xl",
-  sm: "h-9 px-4 text-sm font-medium rounded-xl",
-};
-
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
+      className,
       variant = "primary",
       size = "md",
       loading = false,
       leftIcon,
       fullWidth = false,
-      className,
       disabled,
-      type = "button",
       children,
+      type = "button",
       ...props
     },
     ref
   ) => {
-    const isDisabled = disabled || loading;
+    const baseClasses =
+      "inline-flex items-center justify-center font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none";
+
+    const variantClasses: Record<ButtonVariant, string> = {
+      primary: "bg-nebula text-white hover:brightness-95 active:brightness-90",
+      outlined: "border border-primary-600 text-primary-700 bg-transparent hover:bg-primary-50",
+      ghost: "text-primary-700 bg-transparent hover:bg-primary-50",
+      destructive: "bg-error-600 text-white hover:brightness-90",
+    };
+
+    const sizeClasses: Record<ButtonSize, string> = {
+      sm: "h-9 px-4 rounded-xl text-sm",
+      md: "h-12 px-6 rounded-xl text-sm",
+    };
 
     return (
       <button
         ref={ref}
         type={type}
-        disabled={isDisabled}
-        aria-busy={loading ? "true" : undefined}
+        disabled={disabled || loading}
+        aria-busy={loading}
         className={cn(
-          "inline-flex items-center justify-center gap-2 transition-all select-none",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2",
+          baseClasses,
           variantClasses[variant],
           sizeClasses[size],
           fullWidth && "w-full",
-          isDisabled && "opacity-50 cursor-not-allowed",
           className
         )}
         {...props}
       >
-        {loading && (
+        {loading ? (
           <svg
-            className="animate-spin h-4 w-4 shrink-0 text-current"
-            xmlns="http://www.w3.org/2000/svg"
+            className="animate-spin -ml-1 mr-2 h-4 w-4"
             fill="none"
             viewBox="0 0 24 24"
-            aria-hidden="true"
           >
             <circle
               className="opacity-25"
@@ -78,15 +75,15 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             <path
               className="opacity-75"
               fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              d="M4 12a8 8 0 018-8v8H4z"
             />
           </svg>
-        )}
-        {!loading && leftIcon && <span className="shrink-0">{leftIcon}</span>}
+        ) : leftIcon ? (
+          <span className="mr-2 inline-flex">{leftIcon}</span>
+        ) : null}
         {children}
       </button>
     );
   }
 );
-
 Button.displayName = "Button";
