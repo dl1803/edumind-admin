@@ -6,6 +6,17 @@
   body {
     @apply bg-canvas text-neutral-950 font-sans antialiased;
   }
+
+  /* Ẩn icon mắt và clear mặc định của trình duyệt Edge/IE trên input password */
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear,
+  input::-ms-reveal,
+  input::-ms-clear {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    pointer-events: none !important;
+  }
 }
 
 @layer utilities {
@@ -20,5 +31,18 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
+  .shadow-brand-glow {
+    box-shadow: 0 8px 20px -4px rgba(139, 92, 246, 0.35);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.2s cubic-bezier(.36,.07,.19,.97) both;
 }
 

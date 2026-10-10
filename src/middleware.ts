@@ -6,12 +6,12 @@ export function middleware(request: NextRequest) {
     const token = request.cookies.get('access_token')?.value;
 
     const isLoginPage = pathname === '/login';
-    const isDev = process.env.NODE_ENV !== 'production';
     const isUiDemoPage = pathname === '/ui-demo';
 
-    // Trong môi trường dev (Sprint 4: Ngày 4 UI Demo, Ngày 5 Dashboard Layout),
-    // cho phép truy cập để review giao diện Task 5.2 mà không bị redirect về /login (thuộc Ngày 7)
-    if (isDev) {
+    // Cho phép truy cập /ui-demo khi đang phát triển mà không bị redirect về /login
+
+    // 0. Bỏ qua các tệp tĩnh (hình ảnh, icon, fonts)
+    if (pathname.match(/\.(png|jpg|jpeg|svg|gif|webp|ico|woff2?)$/i)) {
         return NextResponse.next();
     }
 
@@ -31,5 +31,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)'],
 };

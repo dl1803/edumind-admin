@@ -2,6 +2,13 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { API_BASE_URL } from '@/lib/constants';
 import { TokenStorage } from '@/lib/token-storage';
 
+declare module 'axios' {
+    export interface AxiosRequestConfig {
+        _retry?: boolean;
+        skipAuth?: boolean;
+    }
+}
+
 interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
     _retry?: boolean;
     skipAuth?: boolean;
