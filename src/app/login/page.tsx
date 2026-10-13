@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { EnvelopeSimple, LockKey, Eye, EyeSlash, ArrowRight, WarningCircle } from '@phosphor-icons/react';
-import { authService } from '@/services/auth.service';
+import { useLogin } from '@/hooks/useAuth';
 
 const loginSchema = z.object({
   email: z
@@ -24,6 +24,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 function LoginFormContent() {
+  const loginMutation = useLogin();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect') || '/dashboard';
@@ -65,7 +66,7 @@ function LoginFormContent() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setServerError(null);
-      await authService.login(data);
+      await loginMutation.mutateAsync(data);
       router.replace(redirectUrl);
     } catch (err: any) {
       triggerShake();
@@ -247,10 +248,10 @@ function LoginFormContent() {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || loginMutation.isPending}
             className="w-full py-2.5 sm:py-3 px-4 rounded-lg grad-nebula grad-nebula-hover hover:opacity-95 active:scale-[0.99] disabled:opacity-50 text-white font-bold text-xs shadow-brand-glow transition flex items-center justify-center gap-2 mt-2"
           >
-            {isSubmitting ? (
+            {isSubmitting || loginMutation.isPending ? (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
               <>
