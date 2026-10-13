@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { ToastContainer } from "@/components/ui/Toast";
+import { Providers } from "./providers";
 import "./globals.css";
 
 const inter = Inter({
@@ -28,8 +29,10 @@ export default function RootLayout({
   return (
     <html lang="vi" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="min-h-screen">
-        {children}
-        <ToastContainer />
+         <Providers>
+          {children}
+          <ToastContainer />
+        </Providers>
       </body>
     </html>
   );
