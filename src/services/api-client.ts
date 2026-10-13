@@ -1,6 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { API_BASE_URL } from '@/lib/constants';
 import { TokenStorage } from '@/lib/token-storage';
+import { authService } from './auth.service';
 
 declare module 'axios' {
     export interface AxiosRequestConfig {
@@ -98,18 +99,11 @@ apiClient.interceptors.response.use(
             }
 
             try {
-                // Dùng axios trần (không qua interceptor) để tránh lặp vô hạn
-                const refreshResponse = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-                    refresh_token: refreshToken,
-                });
-
-                const { access_token, refresh_token: newRefreshToken } = refreshResponse.data;
-                TokenStorage.setTokens(access_token, newRefreshToken);
-
-                processQueue(null, access_token);
-
+                 // Gọi qua authService.refresh() tập trung
+                const { accessToken: newAccessToken } = await authService.refresh();
+                processQueue(null, newAccessToken);
                 if (originalRequest.headers) {
-                    originalRequest.headers.Authorization = `Bearer ${access_token}`;
+                    originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
                 }
                 return apiClient(originalRequest);
             } catch (refreshError) {
