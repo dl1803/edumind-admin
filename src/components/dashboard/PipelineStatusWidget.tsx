@@ -7,6 +7,9 @@ import {
   Spinner,
   CheckCircle,
   WarningCircle,
+  Check,
+  HourglassSimple,
+  X,
 } from '@phosphor-icons/react';
 import { PipelineItem } from '@/types/dashboard.types';
 
@@ -116,9 +119,11 @@ export function PipelineStatusWidget({ items }: PipelineStatusWidgetProps) {
                   />
                 </div>
                 <div className="flex justify-between text-[10px] text-neutral-500 mt-2">
-                  <span className="text-emerald-600 font-medium">✓ Tải lên</span>
+                  <span className="text-emerald-600 font-medium flex items-center gap-0.5">
+                    <Check size={11} weight="bold" /> Tải lên
+                  </span>
                   <span
-                    className={
+                    className={`flex items-center gap-0.5 ${
                       item.stages.stt === 'done'
                         ? 'text-emerald-600 font-medium'
                         : item.stages.stt === 'error'
@@ -126,28 +131,39 @@ export function PipelineStatusWidget({ items }: PipelineStatusWidgetProps) {
                         : item.stages.stt === 'running'
                         ? 'text-amber-600 font-bold'
                         : 'text-neutral-400'
-                    }
+                    }`}
                   >
-                    {item.stages.stt === 'done'
-                      ? '✓ STT'
-                      : item.stages.stt === 'error'
-                      ? '✗ Lỗi STT'
-                      : '⏳ STT'}
+                    {item.stages.stt === 'done' && <Check size={11} weight="bold" />}
+                    {item.stages.stt === 'error' && <X size={11} weight="bold" />}
+                    {item.stages.stt === 'running' && <HourglassSimple size={11} weight="fill" />}
+                    <span>
+                      {item.stages.stt === 'done'
+                        ? 'STT'
+                        : item.stages.stt === 'error'
+                        ? 'Lỗi STT'
+                        : item.stages.stt === 'running'
+                        ? 'STT'
+                        : 'Chờ'}
+                    </span>
                   </span>
                   <span
-                    className={
+                    className={`flex items-center gap-0.5 ${
                       item.stages.vector === 'done'
                         ? 'text-emerald-600 font-medium'
                         : item.stages.vector === 'running'
                         ? 'text-amber-600 font-bold'
                         : 'text-neutral-400'
-                    }
+                    }`}
                   >
-                    {item.stages.vector === 'done'
-                      ? '✓ Hoàn tất'
-                      : item.stages.vector === 'running'
-                      ? '⏳ Vector'
-                      : 'Chờ'}
+                    {item.stages.vector === 'done' && <Check size={11} weight="bold" />}
+                    {item.stages.vector === 'running' && <HourglassSimple size={11} weight="fill" />}
+                    <span>
+                      {item.stages.vector === 'done'
+                        ? 'Hoàn tất'
+                        : item.stages.vector === 'running'
+                        ? 'Vector'
+                        : 'Chờ'}
+                    </span>
                   </span>
                 </div>
               </div>

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Breadcrumb } from './Breadcrumb';
-import { MagnifyingGlass, User, SignOut, CaretDown } from '@phosphor-icons/react';
+import { User, SignOut, CaretDown } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import { TokenStorage  } from '@/lib/token-storage';
 
@@ -45,20 +45,8 @@ export function TopBar() {
 
       {/* Cụm công cụ bên phải */}
       <div className="flex items-center gap-4">
-        {/* Search Bar nhanh */}
-        <div className="relative hidden md:block">
-          <input
-            type="text"
-            placeholder="Tìm kiếm nhanh..."
-            className="w-56 h-9 pl-9 pr-3 text-xs bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:border-purple-600 focus:bg-white transition"
-          />
-          <MagnifyingGlass
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
-          />
-        </div>
 
-        {/* Chuông thông báo: Đồng bộ theo mẫu Prototype A-02 (SVG gradient Nebula + viền tím #7C3AED + badge 3) */}
+
         <button
           type="button"
           aria-label="Thông báo hệ thống"

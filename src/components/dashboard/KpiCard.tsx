@@ -19,7 +19,6 @@ interface KpiCardProps {
 }
 
 export function KpiCard({ stat }: KpiCardProps) {
-  // Cấu hình màu viền trái và icon theo type
   const config = {
     revenue: {
       borderColor: 'border-l-[#059669]',
@@ -48,7 +47,6 @@ export function KpiCard({ stat }: KpiCardProps) {
       className={`bg-white rounded-xl border border-purple-100/90 border-l-4 ${config.borderColor} shadow-xs p-5 flex flex-col justify-between hover:shadow-md hover:-translate-y-0.5 transition cursor-pointer group h-full`}
     >
       <div>
-        {/* Header KPI Card */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
@@ -67,7 +65,6 @@ export function KpiCard({ stat }: KpiCardProps) {
           </div>
         </div>
 
-        {/* Giá trị chính */}
         {stat.type === 'videos' ? (
           <div className="flex items-baseline gap-2 mt-1.5">
             <p className="text-[22px] font-bold text-neutral-900 font-mono tracking-tight">
@@ -86,7 +83,6 @@ export function KpiCard({ stat }: KpiCardProps) {
         )}
       </div>
 
-      {/* Footer KPI Card (Zero-Pill Rule: Chữ phẳng, không bọc badge nền màu) */}
       <div className="mt-3 flex items-center justify-between text-xs pt-2 border-t border-neutral-100">
         {stat.type === 'videos' ? (
           <>

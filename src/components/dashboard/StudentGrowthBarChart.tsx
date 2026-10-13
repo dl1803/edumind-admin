@@ -26,7 +26,6 @@ export function StudentGrowthBarChart({
   totalThisMonth,
   growthPercent,
 }: StudentGrowthBarChartProps) {
-  // Bảng màu các cột tuần khớp prototype
   const barColors = ['#DDD6FE', '#C4B5FD', '#A78BFA', '#8B5CF6'];
 
   return (
@@ -64,12 +63,14 @@ export function StudentGrowthBarChart({
               fontFamily="JetBrains Mono"
             />
             <Tooltip
+              cursor={false}
               formatter={(val: any) => [`${val} học viên`, 'Đăng ký']}
               contentStyle={{
                 backgroundColor: '#FAF5FF',
                 borderColor: '#E9D5FF',
                 borderRadius: '8px',
                 fontSize: '11px',
+                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.08)',
               }}
             />
             <Bar dataKey="count" radius={[6, 6, 0, 0]}>

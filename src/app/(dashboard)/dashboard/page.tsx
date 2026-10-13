@@ -1,4 +1,5 @@
 'use client';
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { WarningCircle, ArrowsClockwise } from '@phosphor-icons/react';
@@ -15,9 +16,11 @@ export default function AdminDashboardPage() {
     queryKey: ['admin-dashboard-overview'],
     queryFn: () => dashboardService.getOverview(),
   });
+
   if (isLoading) {
     return <DashboardSkeleton />;
   }
+
   if (isError || !data) {
     return (
       <div className="min-h-[400px] flex flex-col items-center justify-center p-8 bg-white rounded-2xl border border-red-100 text-center">
@@ -43,9 +46,9 @@ export default function AdminDashboardPage() {
       </div>
     );
   }
+
   return (
     <div className="space-y-6">
-      {/* HÀNG 1: 4 KPI CARDS */}
       <section aria-label="KPI Thống kê">
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
           {data.kpis.map((stat) => (
@@ -53,7 +56,7 @@ export default function AdminDashboardPage() {
           ))}
         </div>
       </section>
-      {/* HÀNG 2: 2 BIỂU ĐỒ DOANH THU & HỌC VIÊN MỚI (Tỷ lệ 7/5 trên Desktop) */}
+
       <section aria-label="Biểu đồ xu hướng" className="grid grid-cols-1 xl:grid-cols-12 gap-5">
         <div className="xl:col-span-7">
           <RevenueLineChart
@@ -70,11 +73,11 @@ export default function AdminDashboardPage() {
           />
         </div>
       </section>
-      {/* HÀNG 3: BẢNG HOẠT ĐỘNG GẦN ĐÂY */}
+
       <section aria-label="Hoạt động thời gian thực">
         <RecentActivityList activities={data.recentActivities} />
       </section>
-      {/* HÀNG 4: TIẾN TRÌNH PIPELINE VIDEO AI */}
+
       <section aria-label="Tiến trình Video AI">
         <PipelineStatusWidget items={data.pipelineVideos} />
       </section>

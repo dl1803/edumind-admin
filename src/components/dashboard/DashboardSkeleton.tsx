@@ -6,7 +6,6 @@ import { Skeleton } from '@/components/ui/Skeleton';
 export function DashboardSkeleton() {
   return (
     <div className="space-y-6 animate-pulse" aria-busy="true">
-      {/* Row 1: 4 KPI Cards Skeleton */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         {[
           'border-l-emerald-300',
@@ -28,7 +27,6 @@ export function DashboardSkeleton() {
         ))}
       </div>
 
-      {/* Row 2: Charts Skeleton */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
         <div className="xl:col-span-7 bg-white p-6 rounded-xl border border-purple-100/80 shadow-xs space-y-4">
           <div className="flex justify-between items-center">
@@ -50,7 +48,6 @@ export function DashboardSkeleton() {
         </div>
       </div>
 
-      {/* Row 3: Recent Activity Skeleton */}
       <div className="bg-white rounded-xl border border-purple-100/80 shadow-xs p-6 space-y-4">
         <div className="flex justify-between items-center">
           <Skeleton className="w-32 h-4 rounded" />
@@ -63,7 +60,6 @@ export function DashboardSkeleton() {
         </div>
       </div>
 
-      {/* Row 4: Pipeline Skeleton */}
       <div className="bg-white rounded-xl border border-purple-100/80 shadow-xs p-6 space-y-4">
         <Skeleton className="w-44 h-4 rounded" />
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
