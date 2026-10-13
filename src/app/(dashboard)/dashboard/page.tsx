@@ -1,30 +1,83 @@
+'use client';
 import React from 'react';
-import { Card } from '@/components/ui/Card';
+import { useQuery } from '@tanstack/react-query';
+import { WarningCircle, ArrowsClockwise } from '@phosphor-icons/react';
+import { dashboardService } from '@/services/dashboard.service';
+import { KpiCard } from '@/components/dashboard/KpiCard';
+import { RevenueLineChart } from '@/components/dashboard/RevenueLineChart';
+import { StudentGrowthBarChart } from '@/components/dashboard/StudentGrowthBarChart';
+import { RecentActivityList } from '@/components/dashboard/RecentActivityList';
+import { PipelineStatusWidget } from '@/components/dashboard/PipelineStatusWidget';
+import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 
-export default function DashboardPage() {
+export default function AdminDashboardPage() {
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
+    queryKey: ['admin-dashboard-overview'],
+    queryFn: () => dashboardService.getOverview(),
+  });
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
+  if (isError || !data) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center p-8 bg-white rounded-2xl border border-red-100 text-center">
+        <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mb-4">
+          <WarningCircle size={28} weight="fill" />
+        </div>
+        <h2 className="text-base font-bold text-neutral-900">
+          Không thể tải dữ liệu Tổng quan
+        </h2>
+        <p className="text-xs text-neutral-500 max-w-md mt-1 mb-5">
+          {error instanceof Error
+            ? error.message
+            : 'Đã xảy ra sự cố trong quá trình nạp thông tin thống kê. Vui lòng thử lại.'}
+        </p>
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl grad-nebula text-white text-xs font-bold shadow-brand-glow hover:opacity-95 transition disabled:opacity-50"
+        >
+          <ArrowsClockwise size={14} className={isFetching ? 'animate-spin' : ''} />
+          <span>{isFetching ? 'Đang thử lại...' : 'Thử lại ngay'}</span>
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-neutral-900">Tổng quan hệ thống</h1>
-        <p className="text-sm text-neutral-500 mt-1">
-          Chào mừng quay trở lại, Quản trị viên EduMind!
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-        <Card title="Khóa học hoạt động">
-          <p className="text-3xl font-black text-purple-700 mt-2">24</p>
-        </Card>
-        <Card title="Video đang xử lý AI">
-          <p className="text-3xl font-black text-amber-600 mt-2">3</p>
-        </Card>
-        <Card title="Tổng số học viên">
-          <p className="text-3xl font-black text-blue-600 mt-2">1,248</p>
-        </Card>
-        <Card title="Doanh thu tháng">
-          <p className="text-3xl font-black text-emerald-600 mt-2">125.000.000đ</p>
-        </Card>
-      </div>
+      {/* HÀNG 1: 4 KPI CARDS */}
+      <section aria-label="KPI Thống kê">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+          {data.kpis.map((stat) => (
+            <KpiCard key={stat.key} stat={stat} />
+          ))}
+        </div>
+      </section>
+      {/* HÀNG 2: 2 BIỂU ĐỒ DOANH THU & HỌC VIÊN MỚI (Tỷ lệ 7/5 trên Desktop) */}
+      <section aria-label="Biểu đồ xu hướng" className="grid grid-cols-1 xl:grid-cols-12 gap-5">
+        <div className="xl:col-span-7">
+          <RevenueLineChart
+            data={data.revenueTrend.data}
+            averagePerDay={data.revenueTrend.averagePerDay}
+            completionRate={data.revenueTrend.completionRate}
+          />
+        </div>
+        <div className="xl:col-span-5">
+          <StudentGrowthBarChart
+            data={data.studentGrowth.data}
+            totalThisMonth={data.studentGrowth.totalThisMonth}
+            growthPercent={data.studentGrowth.growthPercent}
+          />
+        </div>
+      </section>
+      {/* HÀNG 3: BẢNG HOẠT ĐỘNG GẦN ĐÂY */}
+      <section aria-label="Hoạt động thời gian thực">
+        <RecentActivityList activities={data.recentActivities} />
+      </section>
+      {/* HÀNG 4: TIẾN TRÌNH PIPELINE VIDEO AI */}
+      <section aria-label="Tiến trình Video AI">
+        <PipelineStatusWidget items={data.pipelineVideos} />
+      </section>
     </div>
   );
 }
