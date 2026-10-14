@@ -15,6 +15,7 @@ export interface DataTableColumn<T> {
   sortable?: boolean;
   sortFn?: (a: T, b: T) => number;
   align?: "left" | "center" | "right";
+  headerAlign?: "left" | "center" | "right";
   width?: string;
   className?: string;
 }

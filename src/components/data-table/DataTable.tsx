@@ -122,7 +122,7 @@ export function DataTable<T>({
       <div className="bg-white rounded-xl border border-purple-100/80 shadow-xs overflow-hidden">
         <div className="w-full overflow-x-auto custom-scrollbar">
           <table
-            className="w-full text-left border-collapse min-w-[800px]"
+            className="w-full table-fixed text-left border-collapse min-w-[960px]"
             aria-busy={isLoading}
           >
             <thead>
@@ -130,16 +130,27 @@ export function DataTable<T>({
                 {columns.map((col) => {
                   const isSorted = activeSort?.key === col.key;
                   const sortDir = activeSort?.direction;
+                  const hAlign = col.headerAlign || "center";
 
                   return (
                     <th
                       key={col.key}
                       scope="col"
+                      aria-sort={
+                        col.sortable
+                          ? isSorted
+                            ? sortDir === "asc"
+                              ? "ascending"
+                              : "descending"
+                            : "none"
+                          : undefined
+                      }
                       style={{ width: col.width }}
                       className={cn(
                         "py-3.5 px-4 text-xs font-semibold text-neutral-600",
-                        col.align === "center" && "text-center",
-                        col.align === "right" && "text-right",
+                        hAlign === "center" && "text-center",
+                        hAlign === "left" && "text-left",
+                        hAlign === "right" && "text-right",
                         col.className
                       )}
                     >
@@ -156,13 +167,11 @@ export function DataTable<T>({
                               state.handleSort(col.key);
                             }
                           }}
-                          aria-sort={
-                            isSorted ? (sortDir === "asc" ? "ascending" : "descending") : "none"
-                          }
                           className={cn(
                             "inline-flex items-center gap-1.5 hover:text-purple-700 transition font-bold group",
-                            col.align === "center" && "mx-auto justify-center",
-                            col.align === "right" && "ml-auto justify-end",
+                            hAlign === "center" && "mx-auto justify-center",
+                            hAlign === "left" && "mr-auto justify-start",
+                            hAlign === "right" && "ml-auto justify-end",
                             isSorted && "text-purple-700"
                           )}
                         >
@@ -180,7 +189,16 @@ export function DataTable<T>({
                           </span>
                         </button>
                       ) : (
-                        <span>{col.header}</span>
+                        <span
+                          className={cn(
+                            "inline-block",
+                            hAlign === "center" && "text-center",
+                            hAlign === "left" && "text-left",
+                            hAlign === "right" && "text-right"
+                          )}
+                        >
+                          {col.header}
+                        </span>
                       )}
                     </th>
                   );
