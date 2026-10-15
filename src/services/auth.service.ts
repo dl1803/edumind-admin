@@ -7,11 +7,11 @@ from '@/types/auth.types';
 import { API_BASE_URL } from '@/lib/constants';
 
 
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== 'false'; // Mặc định bật mock khi dev
+const isUseMock = () => process.env.NEXT_PUBLIC_USE_MOCK !== 'false';
 
 export const authService = {
   async login(payload: LoginPayload): Promise<LoginResponse> {
-    if (USE_MOCK) {
+    if (isUseMock()) {
       // Giả lập mạng trễ 600ms
       const data = await authMock.login(payload);
       TokenStorage.setTokens(data.accessToken, data.refreshToken);
@@ -44,16 +44,19 @@ export const authService = {
     if (!currentRefreshToken) {
       throw new Error('Không tìm thấy refresh token trong bộ nhớ.');
     }
-    if (USE_MOCK) {
+    if (isUseMock()) {
       const data = await authMock.refresh(currentRefreshToken);
       TokenStorage.setTokens(data.accessToken, data.refreshToken);
       return data;
     }
     // Axios trần (raw instance) không gắn interceptor
-    const response = await axios.post<RefreshResponse>(`${API_BASE_URL}/api/auth/refresh`, {
+    const response = await axios.post<any>(`${API_BASE_URL}/api/auth/refresh`, {
       refresh_token: currentRefreshToken,
     });
-    const data = response.data;
+    const rawData = response.data;
+    const accessToken = rawData.accessToken || rawData.access_token;
+    const refreshToken = rawData.refreshToken || rawData.refresh_token;
+    const data: RefreshResponse = { accessToken, refreshToken };
     TokenStorage.setTokens(data.accessToken, data.refreshToken);
     return data;
   },
@@ -61,7 +64,7 @@ export const authService = {
   // Đăng xuất hệ thống (Best-effort call API, luôn dọn dẹp Storage trong finally)
   async logout(): Promise<void> {
     try {
-      if (USE_MOCK) {
+      if (isUseMock()) {
         await authMock.logout();
       } else {
         await apiClient.post('/api/auth/logout', {}, { skipAuth: false }).catch(() => {
