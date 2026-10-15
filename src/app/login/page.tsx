@@ -5,23 +5,9 @@ import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { EnvelopeSimple, LockKey, Eye, EyeSlash, ArrowRight, WarningCircle } from '@phosphor-icons/react';
 import { useLogin } from '@/hooks/useAuth';
-
-const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, 'Vui lòng nhập email quản trị')
-    .email('Định dạng email không hợp lệ'),
-  password: z
-    .string()
-    .min(1, 'Vui lòng nhập mật khẩu')
-    .min(8, 'Mật khẩu phải có ít nhất 8 ký tự'),
-  rememberMe: z.boolean().optional(),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
+import { loginSchema, type LoginFormData } from '@/lib/validators';
 
 function LoginFormContent() {
   const loginMutation = useLogin();
