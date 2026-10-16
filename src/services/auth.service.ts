@@ -6,13 +6,11 @@ import { LoginPayload, LoginResponse, AuthUser, RefreshResponse }
 from '@/types/auth.types';
 import { API_BASE_URL } from '@/lib/constants';
 
-
 const isUseMock = () => process.env.NEXT_PUBLIC_USE_MOCK !== 'false';
 
 export const authService = {
   async login(payload: LoginPayload): Promise<LoginResponse> {
     if (isUseMock()) {
-      // Giả lập mạng trễ 600ms
       const data = await authMock.login(payload);
       TokenStorage.setTokens(data.accessToken, data.refreshToken);
       if (typeof window !== 'undefined') {
@@ -20,10 +18,26 @@ export const authService = {
       }
       return data;
     }
-    const response = await apiClient.post<LoginResponse>('/api/auth/login', payload, {
+    const response = await apiClient.post<any>('/api/auth/login', payload, {
       skipAuth: true,
     });
-    const data = response.data;
+    const res = response.data;
+    const user = res.user;
+
+    const data: LoginResponse = {
+      accessToken: res.access_token,
+      refreshToken: res.refresh_token,
+      tokenType: res.token_type || 'Bearer',
+      expiresIn: res.expires_in,
+      user: {
+        id: user.id,
+        fullName: user.full_name,
+        email: user.email,
+        avatarUrl: user.avatar_url,
+        role: user.role,
+      },
+    };
+
     if (data.user.role !== 'admin') {
       const error: any = new Error('Tài khoản không có quyền truy cập quản trị.');
       error.response = { status: 403, data: { error: { code: 'FORBIDDEN', message: 'Không có quyền truy cập.' } } };
@@ -38,7 +52,6 @@ export const authService = {
     return data;
   },
 
-  // Làm mới Access Token bằng Refresh Token (Dùng Axios trần tránh vòng lặp 401)
   async refresh(): Promise<RefreshResponse> {
     const currentRefreshToken = TokenStorage.getRefreshToken();
     if (!currentRefreshToken) {
@@ -49,14 +62,19 @@ export const authService = {
       TokenStorage.setTokens(data.accessToken, data.refreshToken);
       return data;
     }
-    // Axios trần (raw instance) không gắn interceptor
-    const response = await axios.post<any>(`${API_BASE_URL}/api/auth/refresh`, {
+    const cleanBaseUrl = API_BASE_URL.replace(/\/+$/, '');
+    const refreshUrl = cleanBaseUrl.endsWith('/api')
+      ? `${cleanBaseUrl}/auth/refresh`
+      : `${cleanBaseUrl}/api/auth/refresh`;
+
+    const response = await axios.post<any>(refreshUrl, {
       refresh_token: currentRefreshToken,
     });
     const rawData = response.data;
-    const accessToken = rawData.accessToken || rawData.access_token;
-    const refreshToken = rawData.refreshToken || rawData.refresh_token;
-    const data: RefreshResponse = { accessToken, refreshToken };
+    const data: RefreshResponse = {
+      accessToken: rawData.access_token,
+      refreshToken: rawData.refresh_token,
+    };
     TokenStorage.setTokens(data.accessToken, data.refreshToken);
     return data;
   },

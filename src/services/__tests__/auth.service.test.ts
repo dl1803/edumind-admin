@@ -44,15 +44,15 @@ describe('AuthService (Admin)', () => {
     it('đăng nhập thành công và lưu tokens khi credentials hợp lệ và role là admin', async () => {
       const mockLoginResponse = {
         data: {
-          accessToken: 'jwt_admin_access_token',
-          refreshToken: 'jwt_admin_refresh_token',
-          tokenType: 'Bearer',
-          expiresIn: 86400,
+          access_token: 'jwt_admin_access_token',
+          refresh_token: 'jwt_admin_refresh_token',
+          token_type: 'Bearer',
+          expires_in: 86400,
           user: {
             id: 'adm-001',
-            fullName: 'Admin User',
+            full_name: 'Admin User',
             email: 'admin@edumind.edu.vn',
-            avatarUrl: null,
+            avatar_url: null,
             role: 'admin' as const,
           },
         },
@@ -73,20 +73,22 @@ describe('AuthService (Admin)', () => {
       expect(TokenStorage.setTokens).toHaveBeenCalledWith('jwt_admin_access_token', 'jwt_admin_refresh_token');
       expect(localStorage.getItem('admin_user')).toContain('Admin User');
       expect(result.user.role).toBe('admin');
+      expect(result.accessToken).toBe('jwt_admin_access_token');
+      expect(result.user.fullName).toBe('Admin User');
     });
 
     it('ném lỗi FORBIDDEN khi user không có role admin', async () => {
       const mockNonAdminResponse = {
         data: {
-          accessToken: 'jwt_student_token',
-          refreshToken: 'jwt_student_refresh',
-          tokenType: 'Bearer',
-          expiresIn: 86400,
+          access_token: 'jwt_student_token',
+          refresh_token: 'jwt_student_refresh',
+          token_type: 'Bearer',
+          expires_in: 86400,
           user: {
             id: 'stu-001',
-            fullName: 'Student User',
+            full_name: 'Student User',
             email: 'student@edumind.edu.vn',
-            avatarUrl: null,
+            avatar_url: null,
             role: 'student' as const,
           },
         },
