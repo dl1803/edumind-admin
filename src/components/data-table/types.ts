@@ -9,7 +9,7 @@ export interface SortState {
 
 export interface DataTableColumn<T> {
   key: string;
-  header: string;
+  header: ReactNode;
   accessor?: keyof T | ((row: T) => unknown);
   cell?: (row: T) => ReactNode;
   sortable?: boolean;

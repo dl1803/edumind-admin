@@ -168,11 +168,10 @@ export function DataTable<T>({
                             }
                           }}
                           className={cn(
-                            "inline-flex items-center gap-1.5 hover:text-purple-700 transition font-bold group",
+                            "inline-flex items-center gap-1.5 text-neutral-600 hover:text-purple-700 transition font-bold group",
                             hAlign === "center" && "mx-auto justify-center",
                             hAlign === "left" && "mr-auto justify-start",
-                            hAlign === "right" && "ml-auto justify-end",
-                            isSorted && "text-purple-700"
+                            hAlign === "right" && "ml-auto justify-end"
                           )}
                         >
                           <span>{col.header}</span>

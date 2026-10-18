@@ -1,7 +1,13 @@
 import { apiClient } from "./api-client";
 import { Course, CourseListParams, CoursePayload, Category } from "@/types/course.types";
 import { PaginatedResponse } from "@/types/api.types";
-import { mockGetCourses, mockGetCourseById, mockDeleteCourse, MOCK_CATEGORIES } from "./mock/course.mock";
+import {
+  mockGetCourses,
+  mockGetCourseById,
+  mockDeleteCourse,
+  mockUpdateCourse,
+  MOCK_CATEGORIES,
+} from "./mock/course.mock";
 
 function isMockEnabled(): boolean {
   return process.env.NEXT_PUBLIC_USE_MOCK === "true";
@@ -42,8 +48,7 @@ export const courseService = {
 
   async updateCourse(id: string, payload: Partial<CoursePayload>): Promise<Course> {
     if (isMockEnabled()) {
-      const existing = await mockGetCourseById(id);
-      return { ...existing, ...payload, updatedAt: new Date().toISOString() };
+      return mockUpdateCourse(id, payload);
     }
     const response = await apiClient.put<Course>(`/courses/${id}`, payload);
     return response.data;

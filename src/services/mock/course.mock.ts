@@ -1,4 +1,4 @@
-import { Course, Category, CourseListParams } from "@/types/course.types";
+import { Course, Category, CourseListParams, CoursePayload } from "@/types/course.types";
 import { PaginatedResponse, ApiError } from "@/types/api.types";
 
 export const MOCK_CATEGORIES: Category[] = [
@@ -196,4 +196,26 @@ export async function mockDeleteCourse(id: string): Promise<{ success: boolean }
   }
   mockCoursesData.splice(index, 1);
   return { success: true };
+}
+
+export async function mockUpdateCourse(
+  id: string,
+  payload: Partial<CoursePayload>
+): Promise<Course> {
+  await delay(400);
+  const index = mockCoursesData.findIndex((c) => c.id === id);
+  if (index === -1) {
+    const error: ApiError = {
+      code: "NOT_FOUND",
+      message: `Khóa học với mã ${id} không tồn tại.`,
+    };
+    throw error;
+  }
+  const updated = {
+    ...mockCoursesData[index],
+    ...payload,
+    updatedAt: new Date().toISOString(),
+  };
+  mockCoursesData[index] = updated;
+  return updated;
 }

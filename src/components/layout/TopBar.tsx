@@ -4,9 +4,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Breadcrumb } from './Breadcrumb';
 import { User, SignOut, CaretDown } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
-import { TokenStorage  } from '@/lib/token-storage';
+import { TokenStorage } from '@/lib/token-storage';
+import { useTopBar } from '@/context/TopBarContext';
 
 export function TopBar() {
+  const { breadcrumb, actions } = useTopBar();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -39,12 +41,13 @@ export function TopBar() {
   return (
     <header className="h-16 bg-white/95 backdrop-blur-md border-b border-purple-100 px-8 flex items-center justify-between sticky top-0 z-20 shrink-0">
       {/* Cụm Breadcrumb / Tiêu đề bên trái */}
-      <div className="flex items-center gap-3">
-        <Breadcrumb />
+      <div className="flex items-center gap-2 text-xs">
+        {breadcrumb ? breadcrumb : <Breadcrumb />}
       </div>
 
       {/* Cụm công cụ bên phải */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        {actions}
 
 
         <button
