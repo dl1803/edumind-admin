@@ -118,14 +118,20 @@ export const MOCK_COURSES: Course[] = [
   }),
 ];
 
+let mockCoursesData: Course[] = [...MOCK_COURSES];
+
+export function resetMockCoursesData() {
+  mockCoursesData = [...MOCK_COURSES];
+}
+
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function mockGetCourses(params?: CourseListParams): Promise<PaginatedResponse<Course>> {
-  await delay(600);
+  await delay(500);
 
-  let result = [...MOCK_COURSES];
+  let result = [...mockCoursesData];
 
   if (params?.search) {
     const q = params.search.toLowerCase();
@@ -167,7 +173,7 @@ export async function mockGetCourses(params?: CourseListParams): Promise<Paginat
 
 export async function mockGetCourseById(id: string): Promise<Course> {
   await delay(400);
-  const found = MOCK_COURSES.find((c) => c.id === id);
+  const found = mockCoursesData.find((c) => c.id === id);
   if (!found) {
     const error: ApiError = {
       code: "NOT_FOUND",
@@ -176,4 +182,18 @@ export async function mockGetCourseById(id: string): Promise<Course> {
     throw error;
   }
   return found;
+}
+
+export async function mockDeleteCourse(id: string): Promise<{ success: boolean }> {
+  await delay(500);
+  const index = mockCoursesData.findIndex((c) => c.id === id);
+  if (index === -1) {
+    const error: ApiError = {
+      code: "NOT_FOUND",
+      message: `Khóa học với mã ${id} không tồn tại để xóa.`,
+    };
+    throw error;
+  }
+  mockCoursesData.splice(index, 1);
+  return { success: true };
 }
