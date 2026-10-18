@@ -94,7 +94,7 @@ export const MOCK_COURSES: Course[] = [
     createdAt: "2026-08-25T14:00:00Z",
     updatedAt: "2026-10-09T08:00:00Z",
   },
-  ...Array.from({ length: 20 }, (_, idx) => {
+  ...Array.from({ length: 45 }, (_, idx) => {
     const num = idx + 6;
     const cat = MOCK_CATEGORIES[idx % MOCK_CATEGORIES.length];
     const status: Course["status"] = idx % 5 === 0 ? "DRAFT" : idx % 7 === 0 ? "ARCHIVED" : "PUBLISHED";

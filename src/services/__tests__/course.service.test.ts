@@ -14,12 +14,12 @@ describe("CourseService (Mock Engine)", () => {
     process.env.NEXT_PUBLIC_USE_MOCK = originalEnv;
   });
 
-  it("phân trang danh sách khóa học mặc định 10 khóa / trang và tổng cộng 25 khóa", async () => {
+  it("phân trang danh sách khóa học mặc định 10 khóa / trang và tổng cộng 50 khóa", async () => {
     const res = await courseService.getCourses({ page: 1, pageSize: 10 });
     expect(res.items).toHaveLength(10);
-    expect(res.total).toBe(25);
+    expect(res.total).toBe(50);
     expect(res.page).toBe(1);
-    expect(res.totalPages).toBe(3);
+    expect(res.totalPages).toBe(5);
   });
 
   it("lọc danh sách khóa học theo từ khóa tìm kiếm", async () => {

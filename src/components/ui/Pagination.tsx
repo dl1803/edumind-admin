@@ -9,53 +9,60 @@ export interface PaginationProps {
   pageCount: number;
   onPageChange: (page: number) => void;
   className?: string;
+  hideOnSinglePage?: boolean;
 }
 
-export function getPageItems(page: number, pageCount: number): (number | "…")[] {
-  if (pageCount <= 7) {
-    return Array.from({ length: pageCount }, (_, i) => i + 1);
+export function getPageItems(page: number, pageCount: number): (number | "...")[] {
+  const safePageCount = Math.max(1, pageCount);
+
+  if (safePageCount <= 4) {
+    return Array.from({ length: safePageCount }, (_, i) => i + 1);
   }
-  if (page <= 4) {
-    return [1, 2, 3, 4, 5, "…", pageCount];
-  }
-  if (page >= pageCount - 3) {
-    return [1, "…", pageCount - 4, pageCount - 3, pageCount - 2, pageCount - 1, pageCount];
-  }
-  return [1, "…", page - 1, page, page + 1, "…", pageCount];
+
+  return [1, 2, 3, "...", safePageCount];
 }
 
-export function Pagination({ page, pageCount, onPageChange, className }: PaginationProps) {
-  if (pageCount <= 1) return null;
+export function Pagination({
+  page,
+  pageCount,
+  onPageChange,
+  className,
+  hideOnSinglePage = false,
+}: PaginationProps) {
+  if (pageCount <= 1 && hideOnSinglePage) return null;
 
-  const items = getPageItems(page, pageCount);
+  const effectivePageCount = Math.max(1, pageCount);
+  const safePage = Math.max(1, Math.min(page, effectivePageCount));
+  const items = getPageItems(safePage, effectivePageCount);
 
   return (
-    <nav aria-label="Phân trang" className={cn("flex items-center gap-1", className)}>
+    <nav aria-label="Phân trang" className={cn("flex items-center gap-1.5", className)}>
       <button
         type="button"
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
-        className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-neutral-300 text-sm text-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-100"
+        className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-purple-50 hover:text-purple-700 transition cursor-pointer"
+        title="Trang trước"
       >
         <CaretLeft size={16} />
       </button>
 
       {items.map((item, idx) =>
-        item === "…" ? (
-          <span key={`ellipsis-${idx}`} className="px-2 text-neutral-400 select-none">
-            …
+        typeof item !== "number" ? (
+          <span key={`ellipsis-${idx}`} className="px-1 text-neutral-400 select-none tabular-nums">
+            ...
           </span>
         ) : (
           <button
             key={item}
             type="button"
-            aria-current={item === page ? "page" : undefined}
+            aria-current={item === safePage ? "page" : undefined}
             onClick={() => onPageChange(item)}
             className={cn(
-              "h-9 min-w-9 rounded-lg text-sm font-medium transition-colors",
-              item === page
-                ? "bg-primary-50 text-primary-700 font-semibold border border-primary-600"
-                : "text-neutral-700 hover:bg-neutral-100"
+              "px-3 py-1.5 rounded-lg text-xs tabular-nums transition cursor-pointer",
+              item === safePage
+                ? "bg-purple-600 text-white font-bold"
+                : "text-neutral-700 hover:bg-purple-50 hover:text-purple-700 font-medium"
             )}
           >
             {item}
@@ -65,9 +72,10 @@ export function Pagination({ page, pageCount, onPageChange, className }: Paginat
 
       <button
         type="button"
-        disabled={page >= pageCount}
+        disabled={page >= effectivePageCount}
         onClick={() => onPageChange(page + 1)}
-        className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-neutral-300 text-sm text-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-100"
+        className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-purple-50 hover:text-purple-700 transition cursor-pointer"
+        title="Trang tiếp theo"
       >
         <CaretRight size={16} />
       </button>

@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   Plus,
@@ -32,16 +33,58 @@ import { toast } from "@/hooks/useToast";
 import { TopBarContent } from "@/context/TopBarContext";
 import { cn } from "@/lib/utils";
 
-export default function CoursesPage() {
-  const [params, setParams] = useState<CourseListParams>({
-    page: 1,
-    pageSize: 10,
-    search: "",
-    status: "",
-    categoryId: "",
-    sortBy: "createdAt",
-    sortDir: "desc",
-  });
+function CoursesContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const urlParams: CourseListParams = useMemo(() => {
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "10", 10);
+    const search = searchParams.get("search") || "";
+    const status = (searchParams.get("status") as Course["status"] | "") || "";
+    const categoryId = searchParams.get("categoryId") || "";
+    const sortBy = searchParams.get("sortBy") || "createdAt";
+    const sortDir = (searchParams.get("sortDir") as "asc" | "desc") || "desc";
+
+    return {
+      page: isNaN(page) || page < 1 ? 1 : page,
+      pageSize: isNaN(pageSize) || pageSize < 1 ? 10 : pageSize,
+      search,
+      status,
+      categoryId,
+      sortBy,
+      sortDir,
+    };
+  }, [searchParams]);
+
+  const [params, setParams] = useState<CourseListParams>(urlParams);
+
+  useEffect(() => {
+    setParams(urlParams);
+  }, [urlParams]);
+
+  const updateParams = useCallback(
+    (updater: (prev: CourseListParams) => CourseListParams) => {
+      setParams((prev) => {
+        const next = updater(prev);
+        const sp = new URLSearchParams();
+        if (next.page && next.page > 1) sp.set("page", String(next.page));
+        if (next.pageSize && next.pageSize !== 10) sp.set("pageSize", String(next.pageSize));
+        if (next.search) sp.set("search", next.search);
+        if (next.status) sp.set("status", next.status);
+        if (next.categoryId) sp.set("categoryId", next.categoryId);
+        if (next.sortBy && next.sortBy !== "createdAt") sp.set("sortBy", next.sortBy);
+        if (next.sortDir && next.sortDir !== "desc") sp.set("sortDir", next.sortDir);
+
+        const qs = sp.toString();
+        const targetUrl = qs ? `${pathname}?${qs}` : pathname;
+        router.replace(targetUrl, { scroll: false });
+        return next;
+      });
+    },
+    [pathname, router]
+  );
 
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -103,7 +146,7 @@ export default function CoursesPage() {
   }, [allCoursesData]);
 
   const handleStatusFilterChange = (status: Course["status"] | "") => {
-    setParams((prev) => ({
+    updateParams((prev) => ({
       ...prev,
       status: prev.status === status ? "" : status,
       page: 1,
@@ -426,7 +469,7 @@ export default function CoursesPage() {
         searchable={true}
         searchPlaceholder="Tìm tên khóa học..."
         onSearchChange={(query) => {
-          setParams((prev) => ({ ...prev, search: query, page: 1 }));
+          updateParams((prev) => ({ ...prev, search: query, page: 1 }));
         }}
         filters={[
           {
@@ -445,7 +488,7 @@ export default function CoursesPage() {
           },
         ]}
         onFilterChange={(key, value) => {
-          setParams((prev) => ({
+          updateParams((prev) => ({
             ...prev,
             [key]: value,
             page: 1,
@@ -458,7 +501,7 @@ export default function CoursesPage() {
               value={`${params.sortBy || "createdAt"}_${params.sortDir || "desc"}`}
               onChange={(e) => {
                 const [field, dir] = e.target.value.split("_");
-                setParams((prev) => ({
+                updateParams((prev) => ({
                   ...prev,
                   sortBy: field,
                   sortDir: dir as "asc" | "desc",
@@ -473,14 +516,16 @@ export default function CoursesPage() {
             </select>
           </div>
         }
+        pageSizeOptions={[5, 10, 20, 50]}
+        entityName="khóa học"
         page={params.page || 1}
         pageSize={params.pageSize || 10}
         total={coursesData?.total || 0}
         onPageChange={(newPage) => {
-          setParams((prev) => ({ ...prev, page: newPage }));
+          updateParams((prev) => ({ ...prev, page: newPage }));
         }}
         onPageSizeChange={(newSize) => {
-          setParams((prev) => ({ ...prev, pageSize: newSize, page: 1 }));
+          updateParams((prev) => ({ ...prev, pageSize: newSize, page: 1 }));
         }}
         sort={
           params.sortBy
@@ -491,7 +536,7 @@ export default function CoursesPage() {
             : null
         }
         onSortChange={(sort) => {
-          setParams((prev) => ({
+          updateParams((prev) => ({
             ...prev,
             sortBy: sort?.key,
             sortDir: sort?.direction,
@@ -910,5 +955,27 @@ export default function CoursesPage() {
         )}
       </Modal>
     </div>
+  );
+}
+
+function CoursesLoadingSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="h-8 bg-purple-100/50 rounded-lg w-48" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-28 bg-white rounded-xl border border-purple-100" />
+        ))}
+      </div>
+      <div className="h-96 bg-white rounded-xl border border-purple-100" />
+    </div>
+  );
+}
+
+export default function CoursesPage() {
+  return (
+    <Suspense fallback={<CoursesLoadingSkeleton />}>
+      <CoursesContent />
+    </Suspense>
   );
 }
