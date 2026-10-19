@@ -35,7 +35,7 @@ function LoginFormContent() {
     resolver: zodResolver(loginSchema),
     mode: 'onBlur',
     defaultValues: {
-      email: 'admin@edumind.edu.vn',
+      email: 'admin@elearning.com',
       password: '',
       rememberMe: true,
     },
@@ -114,9 +114,8 @@ function LoginFormContent() {
 
       {/* Center Login Card */}
       <main
-        className={`w-full max-w-[420px] bg-white rounded-2xl p-6 sm:p-7 shadow-[0_12px_36px_rgba(124,58,237,0.08)] border relative z-10 my-auto shrink-0 transition-all duration-300 ${
-          isShaking ? 'animate-shake' : ''
-        } ${serverError ? 'border-red-200' : 'border-purple-100/90'}`}
+        className={`w-full max-w-[420px] bg-white rounded-2xl p-6 sm:p-7 shadow-[0_12px_36px_rgba(124,58,237,0.08)] border relative z-10 my-auto shrink-0 transition-all duration-300 ${isShaking ? 'animate-shake' : ''
+          } ${serverError ? 'border-red-200' : 'border-purple-100/90'}`}
       >
         {/* Logo EduMind trên form login - tỷ lệ nhỏ gọn, không gây đẩy tràn màn hình */}
         <div className="text-center mb-4 sm:mb-5">
@@ -153,11 +152,10 @@ function LoginFormContent() {
                 type="email"
                 placeholder="admin@edumind.edu.vn"
                 disabled={isSubmitting}
-                className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-xs text-neutral-900 placeholder:text-neutral-400 placeholder:font-sans font-sans outline-none transition bg-neutral-50/50 ${
-                  errors.email || serverError
-                    ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-100'
-                    : 'border-neutral-200 focus:border-purple-400 focus:ring-1 focus:ring-purple-100'
-                }`}
+                className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-xs text-neutral-900 placeholder:text-neutral-400 placeholder:font-sans font-sans outline-none transition bg-neutral-50/50 ${errors.email || serverError
+                  ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-100'
+                  : 'border-neutral-200 focus:border-purple-400 focus:ring-1 focus:ring-purple-100'
+                  }`}
               />
             </div>
             {errors.email && (
@@ -181,11 +179,10 @@ function LoginFormContent() {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Nhập mật khẩu"
                 disabled={isSubmitting}
-                className={`w-full pl-10 pr-10 py-2.5 rounded-lg border text-xs text-neutral-900 placeholder:text-neutral-400 placeholder:font-sans font-sans outline-none transition bg-neutral-50/50 ${
-                  errors.password || serverError
-                    ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-100'
-                    : 'border-neutral-200 focus:border-purple-400 focus:ring-1 focus:ring-purple-100'
-                }`}
+                className={`w-full pl-10 pr-10 py-2.5 rounded-lg border text-xs text-neutral-900 placeholder:text-neutral-400 placeholder:font-sans font-sans outline-none transition bg-neutral-50/50 ${errors.password || serverError
+                  ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-100'
+                  : 'border-neutral-200 focus:border-purple-400 focus:ring-1 focus:ring-purple-100'
+                  }`}
               />
               <button
                 type="button"

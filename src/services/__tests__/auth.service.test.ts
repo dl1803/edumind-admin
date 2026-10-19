@@ -67,7 +67,7 @@ describe('AuthService (Admin)', () => {
 
       const result = await authService.login(payload);
 
-      expect(apiClient.post).toHaveBeenCalledWith('/api/auth/login', payload, {
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/login', payload, {
         skipAuth: true,
       });
       expect(TokenStorage.setTokens).toHaveBeenCalledWith('jwt_admin_access_token', 'jwt_admin_refresh_token');

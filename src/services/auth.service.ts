@@ -2,8 +2,8 @@ import axios from 'axios';
 import { apiClient } from './api-client';
 import { authMock } from './mock/auth.mock';
 import { TokenStorage } from '@/lib/token-storage';
-import { LoginPayload, LoginResponse, AuthUser, RefreshResponse } 
-from '@/types/auth.types';
+import { LoginPayload, LoginResponse, AuthUser, RefreshResponse }
+  from '@/types/auth.types';
 import { API_BASE_URL } from '@/lib/constants';
 
 const isUseMock = () => process.env.NEXT_PUBLIC_USE_MOCK !== 'false';
@@ -18,7 +18,7 @@ export const authService = {
       }
       return data;
     }
-    const response = await apiClient.post<any>('/api/auth/login', payload, {
+    const response = await apiClient.post<any>('/auth/login', payload, {
       skipAuth: true,
     });
     const res = response.data;
@@ -38,7 +38,7 @@ export const authService = {
       },
     };
 
-    if (data.user.role !== 'admin') {
+    if (data.user.role?.toLowerCase() !== 'admin') {
       const error: any = new Error('Tài khoản không có quyền truy cập quản trị.');
       error.response = { status: 403, data: { error: { code: 'FORBIDDEN', message: 'Không có quyền truy cập.' } } };
       throw error;
@@ -85,7 +85,7 @@ export const authService = {
       if (isUseMock()) {
         await authMock.logout();
       } else {
-        await apiClient.post('/api/auth/logout', {}, { skipAuth: false }).catch(() => {
+        await apiClient.post('/auth/logout', {}, { skipAuth: false }).catch(() => {
           // Bỏ qua lỗi mạng khi logout để luôn giải phóng client
         });
       }
