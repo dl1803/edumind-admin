@@ -9,7 +9,7 @@ export interface SortState {
 
 export interface DataTableColumn<T> {
   key: string;
-  header: string;
+  header: ReactNode;
   accessor?: keyof T | ((row: T) => unknown);
   cell?: (row: T) => ReactNode;
   sortable?: boolean;
@@ -58,6 +58,7 @@ export interface DataTableProps<T> {
   onPageSizeChange?: (pageSize: number) => void;
   onSearchChange?: (query: string) => void;
   onFilterChange?: (key: string, value: string) => void;
+  entityName?: string;
   onRowClick?: (row: T) => void;
   emptyState?: DataTableEmptyConfig;
   toolbar?: ReactNode;

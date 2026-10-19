@@ -13,6 +13,7 @@ export interface ModalProps {
   footer?: React.ReactNode;
   size?: "sm" | "md" | "lg";
   closeOnOverlayClick?: boolean;
+  hideHeader?: boolean;
 }
 
 export function Modal({
@@ -23,6 +24,7 @@ export function Modal({
   footer,
   size = "md",
   closeOnOverlayClick = true,
+  hideHeader = false,
 }: ModalProps) {
   const [mounted, setMounted] = React.useState(false);
 
@@ -79,18 +81,20 @@ export function Modal({
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
-          {title && <h3 className="text-lg font-semibold text-neutral-950">{title}</h3>}
-          <button
-            type="button"
-            aria-label="Đóng"
-            onClick={onClose}
-            className="rounded-lg p-1 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <div className="py-4 text-neutral-700">{children}</div>
+        {!hideHeader && (
+          <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+            {title && <h3 className="text-lg font-semibold text-neutral-950">{title}</h3>}
+            <button
+              type="button"
+              aria-label="Đóng"
+              onClick={onClose}
+              className="rounded-lg p-1 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        )}
+        <div className={cn(!hideHeader && "py-4", "text-neutral-700")}>{children}</div>
         {footer && <div className="pt-3 border-t border-neutral-100 flex justify-end gap-3">{footer}</div>}
       </div>
     </div>,

@@ -1,13 +1,21 @@
 import { apiClient } from "./api-client";
 import { Course, CourseListParams, CoursePayload, Category } from "@/types/course.types";
 import { PaginatedResponse } from "@/types/api.types";
-import { mockGetCourses, mockGetCourseById, MOCK_CATEGORIES } from "./mock/course.mock";
+import {
+  mockGetCourses,
+  mockGetCourseById,
+  mockDeleteCourse,
+  mockUpdateCourse,
+  MOCK_CATEGORIES,
+} from "./mock/course.mock";
 
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
+function isMockEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_USE_MOCK === "true";
+}
 
 export const courseService = {
   async getCourses(params?: CourseListParams): Promise<PaginatedResponse<Course>> {
-    if (USE_MOCK) {
+    if (isMockEnabled()) {
       return mockGetCourses(params);
     }
     const response = await apiClient.get<PaginatedResponse<Course>>("/courses", { params });
@@ -15,7 +23,7 @@ export const courseService = {
   },
 
   async getCourseById(id: string): Promise<Course> {
-    if (USE_MOCK) {
+    if (isMockEnabled()) {
       return mockGetCourseById(id);
     }
     const response = await apiClient.get<Course>(`/courses/${id}`);
@@ -23,7 +31,7 @@ export const courseService = {
   },
 
   async createCourse(payload: CoursePayload): Promise<Course> {
-    if (USE_MOCK) {
+    if (isMockEnabled()) {
       return {
         id: `crs-${Date.now()}`,
         ...payload,
@@ -39,24 +47,23 @@ export const courseService = {
   },
 
   async updateCourse(id: string, payload: Partial<CoursePayload>): Promise<Course> {
-    if (USE_MOCK) {
-      const existing = await mockGetCourseById(id);
-      return { ...existing, ...payload, updatedAt: new Date().toISOString() };
+    if (isMockEnabled()) {
+      return mockUpdateCourse(id, payload);
     }
     const response = await apiClient.put<Course>(`/courses/${id}`, payload);
     return response.data;
   },
 
   async deleteCourse(id: string): Promise<{ success: boolean }> {
-    if (USE_MOCK) {
-      return { success: true };
+    if (isMockEnabled()) {
+      return mockDeleteCourse(id);
     }
     const response = await apiClient.delete<{ success: boolean }>(`/courses/${id}`);
     return response.data;
   },
 
   async getCategories(): Promise<Category[]> {
-    if (USE_MOCK) {
+    if (isMockEnabled()) {
       return MOCK_CATEGORIES;
     }
     const response = await apiClient.get<Category[]>("/categories");

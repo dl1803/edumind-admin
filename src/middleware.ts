@@ -18,7 +18,8 @@ export function middleware(request: NextRequest) {
     // 1. Nếu chưa có token và truy cập vào trang bảo vệ (không phải /login hoặc /ui-demo)
     if (!token && !isLoginPage && !isUiDemoPage) {
         const loginUrl = new URL('/login', request.url);
-        loginUrl.searchParams.set('redirect', pathname);
+        const redirectPath = pathname + request.nextUrl.search;
+        loginUrl.searchParams.set('redirect', redirectPath);
         return NextResponse.redirect(loginUrl);
     }
 

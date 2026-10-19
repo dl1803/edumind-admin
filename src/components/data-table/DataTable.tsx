@@ -30,12 +30,13 @@ export function DataTable<T>({
   onSortChange,
   page: controlledPage,
   pageSize: controlledPageSize,
-  pageSizeOptions = [10, 20, 50],
+  pageSizeOptions = [5, 10, 20, 50],
   total: controlledTotal,
   onPageChange,
   onPageSizeChange,
   onSearchChange,
   onFilterChange,
+  entityName = "khóa học",
   onRowClick,
   emptyState,
   toolbar,
@@ -168,11 +169,10 @@ export function DataTable<T>({
                             }
                           }}
                           className={cn(
-                            "inline-flex items-center gap-1.5 hover:text-purple-700 transition font-bold group",
+                            "inline-flex items-center gap-1.5 text-neutral-600 hover:text-purple-700 transition font-bold group",
                             hAlign === "center" && "mx-auto justify-center",
                             hAlign === "left" && "mr-auto justify-start",
-                            hAlign === "right" && "ml-auto justify-end",
-                            isSorted && "text-purple-700"
+                            hAlign === "right" && "ml-auto justify-end"
                           )}
                         >
                           <span>{col.header}</span>
@@ -278,12 +278,18 @@ export function DataTable<T>({
         </div>
 
         {!isLoading && currentTotal > 0 && (
-          <div className="p-4 border-t border-purple-100/80 bg-neutral-50/30 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3 text-xs text-neutral-500 font-medium">
+          <div className="p-4 border-t border-purple-100 bg-white flex flex-wrap items-center justify-between gap-4 text-xs text-neutral-500">
+            <div className="flex items-center gap-3">
               <span>
-                Hiển thị <span className="font-bold text-neutral-900">{fromIndex}</span>–
-                <span className="font-bold text-neutral-900">{toIndex}</span> /{" "}
-                <span className="font-bold text-neutral-900">{currentTotal}</span> kết quả
+                Hiển thị{" "}
+                <strong className="text-neutral-800 font-bold tabular-nums">
+                  {fromIndex} - {toIndex}
+                </strong>{" "}
+                trong tổng số{" "}
+                <strong className="text-neutral-800 font-bold tabular-nums">
+                  {currentTotal}
+                </strong>{" "}
+                {entityName}
               </span>
 
               <div className="flex items-center gap-1.5 ml-2">

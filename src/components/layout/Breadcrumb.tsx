@@ -42,8 +42,11 @@ export function Breadcrumb() {
       {segments.map((segment, index) => {
         const isLast = index === segments.length - 1;
         const href = `/${segments.slice(0, index + 1).join('/')}`;
-        // Nếu là UUID hoặc id số thì hiển thị 'Chi tiết', ngược lại tra từ điển
-        const isId = /^[0-9a-fA-F-]+$/.test(segment);
+        // Nếu là ID (crs-..., UUID hoặc số) thì hiển thị 'Chi tiết', ngược lại tra từ điển
+        const isId =
+          segment.startsWith('crs-') ||
+          /^[0-9a-fA-F-]{8,}$/.test(segment) ||
+          /^\d+$/.test(segment);
         const label = isId ? 'Chi tiết' : (PATH_LABELS[segment] || segment);
 
         return (

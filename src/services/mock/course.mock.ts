@@ -1,4 +1,4 @@
-import { Course, Category, CourseListParams } from "@/types/course.types";
+import { Course, Category, CourseListParams, CoursePayload } from "@/types/course.types";
 import { PaginatedResponse, ApiError } from "@/types/api.types";
 
 export const MOCK_CATEGORIES: Category[] = [
@@ -94,7 +94,7 @@ export const MOCK_COURSES: Course[] = [
     createdAt: "2026-08-25T14:00:00Z",
     updatedAt: "2026-10-09T08:00:00Z",
   },
-  ...Array.from({ length: 20 }, (_, idx) => {
+  ...Array.from({ length: 45 }, (_, idx) => {
     const num = idx + 6;
     const cat = MOCK_CATEGORIES[idx % MOCK_CATEGORIES.length];
     const status: Course["status"] = idx % 5 === 0 ? "DRAFT" : idx % 7 === 0 ? "ARCHIVED" : "PUBLISHED";
@@ -118,14 +118,20 @@ export const MOCK_COURSES: Course[] = [
   }),
 ];
 
+let mockCoursesData: Course[] = [...MOCK_COURSES];
+
+export function resetMockCoursesData() {
+  mockCoursesData = [...MOCK_COURSES];
+}
+
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function mockGetCourses(params?: CourseListParams): Promise<PaginatedResponse<Course>> {
-  await delay(600);
+  await delay(500);
 
-  let result = [...MOCK_COURSES];
+  let result = [...mockCoursesData];
 
   if (params?.search) {
     const q = params.search.toLowerCase();
@@ -167,7 +173,7 @@ export async function mockGetCourses(params?: CourseListParams): Promise<Paginat
 
 export async function mockGetCourseById(id: string): Promise<Course> {
   await delay(400);
-  const found = MOCK_COURSES.find((c) => c.id === id);
+  const found = mockCoursesData.find((c) => c.id === id);
   if (!found) {
     const error: ApiError = {
       code: "NOT_FOUND",
@@ -176,4 +182,40 @@ export async function mockGetCourseById(id: string): Promise<Course> {
     throw error;
   }
   return found;
+}
+
+export async function mockDeleteCourse(id: string): Promise<{ success: boolean }> {
+  await delay(500);
+  const index = mockCoursesData.findIndex((c) => c.id === id);
+  if (index === -1) {
+    const error: ApiError = {
+      code: "NOT_FOUND",
+      message: `Khóa học với mã ${id} không tồn tại để xóa.`,
+    };
+    throw error;
+  }
+  mockCoursesData.splice(index, 1);
+  return { success: true };
+}
+
+export async function mockUpdateCourse(
+  id: string,
+  payload: Partial<CoursePayload>
+): Promise<Course> {
+  await delay(400);
+  const index = mockCoursesData.findIndex((c) => c.id === id);
+  if (index === -1) {
+    const error: ApiError = {
+      code: "NOT_FOUND",
+      message: `Khóa học với mã ${id} không tồn tại.`,
+    };
+    throw error;
+  }
+  const updated = {
+    ...mockCoursesData[index],
+    ...payload,
+    updatedAt: new Date().toISOString(),
+  };
+  mockCoursesData[index] = updated;
+  return updated;
 }

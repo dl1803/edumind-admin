@@ -15,7 +15,7 @@ export const ADMIN_MENU_ITEMS: MenuItem[] = [
     title: 'Khóa học',
     href: '/courses',
     iconName: 'BookOpen',
-    badge: '24',
+    badge: '25',
   },
   {
     title: 'Video & Xử lý AI',

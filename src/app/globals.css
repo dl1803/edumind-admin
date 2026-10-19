@@ -31,7 +31,8 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
-  .shadow-brand-glow {
+  .shadow-brand-glow,
+  .shadow-nebula {
     box-shadow: 0 8px 20px -4px rgba(139, 92, 246, 0.35);
   }
 }
