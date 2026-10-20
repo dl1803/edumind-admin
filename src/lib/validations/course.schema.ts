@@ -17,9 +17,9 @@ export type CourseFilterValues = z.infer<typeof courseFilterSchema>;
 export const lessonSchema = z.object({
   id: z.string(),
   title: z.string().trim().min(1, "Tiêu đề bài giảng không được để trống"),
-  durationSeconds: z.number().optional().default(0),
+  durationSeconds: z.number().optional(),
   videoUrl: z.string().optional(),
-  isPreview: z.boolean().optional().default(false),
+  isPreview: z.boolean().optional(),
   order: z.number().default(0),
 });
 
