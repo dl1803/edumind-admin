@@ -1,4 +1,11 @@
-import { Course, Category, CourseListParams, CoursePayload } from "@/types/course.types";
+import {
+  Course,
+  Category,
+  CourseListParams,
+  CoursePayload,
+  InstructorOption,
+  Chapter,
+} from "@/types/course.types";
 import { PaginatedResponse, ApiError } from "@/types/api.types";
 
 export const MOCK_CATEGORIES: Category[] = [
@@ -6,6 +13,34 @@ export const MOCK_CATEGORIES: Category[] = [
   { id: "cat-2", name: "Khoa học Dữ liệu & AI", slug: "ai" },
   { id: "cat-3", name: "Phát triển Web", slug: "web" },
   { id: "cat-4", name: "Thiết kế UI/UX", slug: "uiux" },
+];
+
+export const MOCK_INSTRUCTORS: InstructorOption[] = [
+  { id: "inst-01", name: "TS. Lê Hoàng Nam", title: "Khoa CNTT, ĐHQG Hà Nội" },
+  { id: "inst-02", name: "ThS. Trần Trung", title: "AI Research Lab, Viện Hàn lâm" },
+  { id: "inst-03", name: "Kỹ sư Phạm Quốc Bảo", title: "Mobile Team Lead, FPT Software" },
+  { id: "inst-04", name: "ThS. Nguyễn Thị Mai", title: "Product Designer, VNG Corporation" },
+];
+
+export const DEFAULT_SAMPLE_CHAPTERS: Chapter[] = [
+  {
+    id: "chap-01",
+    title: "Chương 1: Làm quen với ngôn ngữ Python & Trợ giảng AI",
+    order: 1,
+    lessons: [
+      { id: "les-01", title: "1.1 Cài đặt môi trường Python 3.12 & VS Code", durationSeconds: 480, isPreview: true, order: 1 },
+      { id: "les-02", title: "1.2 Cú pháp cơ bản, biến số và kiểu dữ liệu", durationSeconds: 720, isPreview: false, order: 2 },
+    ],
+  },
+  {
+    id: "chap-02",
+    title: "Chương 2: Cấu trúc điều khiển và Xử lý dữ liệu",
+    order: 2,
+    lessons: [
+      { id: "les-03", title: "2.1 Câu lệnh điều kiện if-else và logic toán tử", durationSeconds: 650, isPreview: false, order: 1 },
+      { id: "les-04", title: "2.2 Vòng lặp for, while và comprehension", durationSeconds: 840, isPreview: false, order: 2 },
+    ],
+  },
 ];
 
 export const MOCK_COURSES: Course[] = [
@@ -181,7 +216,29 @@ export async function mockGetCourseById(id: string): Promise<Course> {
     };
     throw error;
   }
-  return found;
+  return {
+    ...found,
+    chapters: found.chapters && found.chapters.length > 0 ? found.chapters : DEFAULT_SAMPLE_CHAPTERS,
+  };
+}
+
+export async function mockCreateCourse(payload: CoursePayload): Promise<Course> {
+  await delay(400);
+  const instructor = MOCK_INSTRUCTORS.find((i) => i.id === payload.instructorId);
+  const category = MOCK_CATEGORIES.find((c) => c.id === payload.categoryId);
+  const newCourse: Course = {
+    id: `crs-${Date.now()}`,
+    ...payload,
+    instructorName: instructor ? instructor.name : "Giảng viên EduMind",
+    categoryName: category ? category.name : "Khóa học",
+    studentCount: 0,
+    lessonCount: payload.chapters?.reduce((acc, chap) => acc + (chap.lessons?.length || 0), 0) || 0,
+    chapterCount: payload.chapters?.length || 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  mockCoursesData.unshift(newCourse);
+  return newCourse;
 }
 
 export async function mockDeleteCourse(id: string): Promise<{ success: boolean }> {
@@ -211,9 +268,14 @@ export async function mockUpdateCourse(
     };
     throw error;
   }
-  const updated = {
+  const instructor = MOCK_INSTRUCTORS.find((i) => i.id === payload.instructorId);
+  const category = MOCK_CATEGORIES.find((c) => c.id === payload.categoryId);
+
+  const updated: Course = {
     ...mockCoursesData[index],
     ...payload,
+    instructorName: instructor ? instructor.name : mockCoursesData[index].instructorName,
+    categoryName: category ? category.name : mockCoursesData[index].categoryName,
     updatedAt: new Date().toISOString(),
   };
   mockCoursesData[index] = updated;
