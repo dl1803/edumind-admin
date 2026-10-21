@@ -1,12 +1,20 @@
 import { apiClient } from "./api-client";
-import { Course, CourseListParams, CoursePayload, Category } from "@/types/course.types";
+import {
+  Course,
+  CourseListParams,
+  CoursePayload,
+  Category,
+  InstructorOption,
+} from "@/types/course.types";
 import { PaginatedResponse } from "@/types/api.types";
 import {
   mockGetCourses,
   mockGetCourseById,
+  mockCreateCourse,
   mockDeleteCourse,
   mockUpdateCourse,
   MOCK_CATEGORIES,
+  MOCK_INSTRUCTORS,
 } from "./mock/course.mock";
 
 function isMockEnabled(): boolean {
@@ -32,15 +40,7 @@ export const courseService = {
 
   async createCourse(payload: CoursePayload): Promise<Course> {
     if (isMockEnabled()) {
-      return {
-        id: `crs-${Date.now()}`,
-        ...payload,
-        instructorName: "Giảng viên EduMind",
-        studentCount: 0,
-        lessonCount: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      return mockCreateCourse(payload);
     }
     const response = await apiClient.post<Course>("/courses", payload);
     return response.data;
@@ -67,6 +67,14 @@ export const courseService = {
       return MOCK_CATEGORIES;
     }
     const response = await apiClient.get<Category[]>("/categories");
+    return response.data;
+  },
+
+  async getInstructors(): Promise<InstructorOption[]> {
+    if (isMockEnabled()) {
+      return MOCK_INSTRUCTORS;
+    }
+    const response = await apiClient.get<InstructorOption[]>("/instructors/options");
     return response.data;
   },
 };
