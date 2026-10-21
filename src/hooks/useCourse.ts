@@ -17,6 +17,7 @@ export interface ExtendedLesson extends Lesson {
 }
 
 export interface ExtendedChapter extends Omit<Chapter, "lessons"> {
+  description?: string;
   lessons: ExtendedLesson[];
 }
 
