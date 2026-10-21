@@ -31,7 +31,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     editorProps: {
       attributes: {
         class:
-          "min-h-[160px] p-3.5 text-xs text-neutral-800 focus:outline-none font-sans leading-relaxed",
+          "tiptap-content min-h-[160px] p-3.5 text-xs text-neutral-800 focus:outline-none font-sans leading-relaxed",
       },
     },
     onUpdate: ({ editor }) => {
@@ -59,6 +59,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <div className="px-3 py-2 bg-neutral-100/70 border-b border-neutral-200 flex items-center gap-2 text-xs text-neutral-600 flex-wrap">
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => editor.chain().focus().toggleBold().run()}
             className={`font-bold p-1 rounded transition flex items-center gap-1 ${
               editor.isActive("bold")
@@ -71,6 +72,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           </button>
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => editor.chain().focus().toggleItalic().run()}
             className={`p-1 rounded transition flex items-center gap-1 ${
               editor.isActive("italic")
@@ -83,6 +85,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           </button>
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
             className={`p-1 rounded font-bold transition flex items-center gap-1 ${
               editor.isActive("heading", { level: 3 })
@@ -96,6 +99,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <span className="text-neutral-300">|</span>
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             className={`p-1 rounded transition flex items-center gap-1 ${
               editor.isActive("bulletList")
@@ -108,6 +112,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           </button>
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
             className={`p-1 rounded transition flex items-center gap-1 ${
               editor.isActive("orderedList")
@@ -120,6 +125,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           </button>
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => editor.chain().focus().toggleCodeBlock().run()}
             className={`p-1 rounded font-mono text-[11px] transition flex items-center gap-1 ${
               editor.isActive("codeBlock")

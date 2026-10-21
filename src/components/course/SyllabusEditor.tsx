@@ -29,6 +29,62 @@ interface SyllabusEditorProps {
   onChange: (chapters: Chapter[]) => void;
 }
 
+interface SortableLessonItemProps {
+  lesson: Lesson;
+  index: number;
+  onDelete: () => void;
+}
+
+const SortableLessonItem: React.FC<SortableLessonItemProps> = ({
+  lesson,
+  index,
+  onDelete,
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+    id: lesson.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center justify-between p-2 rounded-lg bg-neutral-50 border border-neutral-100 text-xs group"
+    >
+      <div className="flex items-center gap-2 flex-1">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing text-neutral-400 hover:text-purple-600 p-0.5"
+          title="Kéo thả sắp xếp thứ tự bài giảng"
+        >
+          <DotsSixVertical size={14} />
+        </button>
+        <span className="text-neutral-400 font-mono">{index + 1}.</span>
+        <span className="font-medium text-neutral-800">{lesson.title}</span>
+        {lesson.isPreview && (
+          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
+            Học thử
+          </span>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={onDelete}
+        className="text-neutral-400 hover:text-red-500 text-xs p-1"
+        title="Xóa bài giảng"
+      >
+        <X size={14} />
+      </button>
+    </div>
+  );
+};
+
 interface SortableChapterItemProps {
   chapter: Chapter;
   chapterIndex: number;
@@ -109,30 +165,21 @@ const SortableChapterItem: React.FC<SortableChapterItemProps> = ({
         {chapter.lessons.length === 0 ? (
           <p className="text-[11px] text-neutral-400 italic">Chưa có bài giảng nào trong chương này.</p>
         ) : (
-          chapter.lessons.map((lesson, lIdx) => (
-            <div
-              key={lesson.id}
-              className="flex items-center justify-between p-2 rounded-lg bg-neutral-50 border border-neutral-100 text-xs"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-neutral-400 font-mono">{lIdx + 1}.</span>
-                <span className="font-medium text-neutral-800">{lesson.title}</span>
-                {lesson.isPreview && (
-                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
-                    Học thử
-                  </span>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => onDeleteLesson(lesson.id)}
-                className="text-neutral-400 hover:text-red-500 text-xs p-1"
-                title="Xóa bài giảng"
-              >
-                <X size={14} />
-              </button>
+          <SortableContext
+            items={chapter.lessons.map((l) => l.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-1.5">
+              {chapter.lessons.map((lesson, lIdx) => (
+                <SortableLessonItem
+                  key={lesson.id}
+                  lesson={lesson}
+                  index={lIdx}
+                  onDelete={() => onDeleteLesson(lesson.id)}
+                />
+              ))}
             </div>
-          ))
+          </SortableContext>
         )}
 
         <button
@@ -197,10 +244,30 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({ chapters, onChan
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (over && active.id !== over.id) {
-      const oldIndex = chapters.findIndex((c) => c.id === active.id);
-      const newIndex = chapters.findIndex((c) => c.id === over.id);
-      onChange(arrayMove(chapters, oldIndex, newIndex));
+    if (!over || active.id === over.id) return;
+
+    // Kéo thả sắp xếp Chương
+    const activeChapterIdx = chapters.findIndex((c) => c.id === active.id);
+    const overChapterIdx = chapters.findIndex((c) => c.id === over.id);
+    if (activeChapterIdx !== -1 && overChapterIdx !== -1) {
+      onChange(arrayMove(chapters, activeChapterIdx, overChapterIdx));
+      return;
+    }
+
+    // Kéo thả sắp xếp Bài giảng trong cùng một Chương
+    for (let cIdx = 0; cIdx < chapters.length; cIdx++) {
+      const lessons = chapters[cIdx].lessons;
+      const activeLessonIdx = lessons.findIndex((l) => l.id === active.id);
+      const overLessonIdx = lessons.findIndex((l) => l.id === over.id);
+      if (activeLessonIdx !== -1 && overLessonIdx !== -1) {
+        const updatedChapters = [...chapters];
+        updatedChapters[cIdx] = {
+          ...chapters[cIdx],
+          lessons: arrayMove(lessons, activeLessonIdx, overLessonIdx),
+        };
+        onChange(updatedChapters);
+        return;
+      }
     }
   };
 
@@ -252,51 +319,64 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({ chapters, onChan
           <h3 className="text-xs font-bold text-purple-900 uppercase tracking-wider">
             Đề cương khóa học ({chapters.length} chương)
           </h3>
-          <p className="text-[11px] text-neutral-500">
-            Kéo thả biểu tượng ⋮⋮ để sắp xếp lại thứ tự bài giảng.
+          <p className="text-[11px] text-neutral-500 mt-0.5">
+            Kéo thả biểu tượng ⠿ để sắp xếp lại thứ tự chương và bài giảng.
           </p>
         </div>
-        <Button size="sm" variant="outlined" onClick={handleAddChapter} type="button">
-          + Thêm chương mới
-        </Button>
+        <button
+          type="button"
+          onClick={handleAddChapter}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-semibold transition"
+        >
+          <Plus size={14} weight="bold" />
+          <span>Thêm chương mới</span>
+        </button>
       </div>
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={chapters.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-3">
-            {chapters.length === 0 ? (
-              <div className="text-center py-10 border-2 border-dashed border-neutral-200 rounded-xl bg-neutral-50/50">
-                <p className="text-xs text-neutral-500">Khóa học chưa có chương hoặc bài giảng nào.</p>
-                <Button size="sm" onClick={handleAddChapter} className="mt-3" type="button">
-                  Bấm để thêm chương đầu tiên
-                </Button>
-              </div>
-            ) : (
-              chapters.map((chap, idx) => (
+      {chapters.length === 0 ? (
+        <div className="bg-white rounded-2xl border-2 border-dashed border-purple-200 p-8 text-center space-y-3">
+          <p className="text-xs text-neutral-500">Khóa học hiện chưa có chương đề cương nào.</p>
+          <Button variant="outlined" size="sm" onClick={handleAddChapter}>
+            + Bắt đầu thêm Chương 1
+          </Button>
+        </div>
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={chapters.map((c) => c.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-4">
+              {chapters.map((chapter, index) => (
                 <SortableChapterItem
-                  key={chap.id}
-                  chapter={chap}
-                  chapterIndex={idx}
-                  onUpdateTitle={(title) => handleUpdateChapterTitle(idx, title)}
-                  onDeleteChapter={() => setChapterToDelete(idx)}
-                  onAddLesson={(title, isPreview) => handleAddLesson(idx, title, isPreview)}
-                  onDeleteLesson={(lessonId) => handleDeleteLesson(idx, lessonId)}
+                  key={chapter.id}
+                  chapter={chapter}
+                  chapterIndex={index}
+                  onUpdateTitle={(title) => handleUpdateChapterTitle(index, title)}
+                  onDeleteChapter={() => setChapterToDelete(index)}
+                  onAddLesson={(title, isPrev) => handleAddLesson(index, title, isPrev)}
+                  onDeleteLesson={(lessonId) => handleDeleteLesson(index, lessonId)}
                 />
-              ))
-            )}
-          </div>
-        </SortableContext>
-      </DndContext>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
 
       <Modal
         open={chapterToDelete !== null}
         onClose={() => setChapterToDelete(null)}
         title="Xác nhận xóa chương học"
       >
-        <div className="space-y-4 py-2">
-          <p className="text-xs text-neutral-600">
-            Bạn có chắc chắn muốn xóa chương này? Toàn bộ các bài giảng bên trong chương cũng sẽ bị xóa bỏ khỏi đề cương.
+        <div className="space-y-3 py-2 text-xs">
+          <p className="text-neutral-700">
+            Bạn có chắc chắn muốn xóa chương này cùng toàn bộ các bài giảng bên trong?
           </p>
+          <p className="text-red-500 font-medium">Hành động này không thể hoàn tác.</p>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outlined" size="sm" onClick={() => setChapterToDelete(null)}>
               Hủy

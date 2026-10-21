@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CourseForm } from "@/components/course/CourseForm";
+import { CourseForm, CourseFormRef } from "@/components/course/CourseForm";
 import { useSaveCourse } from "@/hooks/useCourses";
 import { CourseFormValues } from "@/types/course.types";
 import { TopBarContent } from "@/context/TopBarContext";
@@ -11,6 +11,7 @@ import { ArrowLeft, CaretRight } from "@phosphor-icons/react";
 
 export default function NewCoursePage() {
   const router = useRouter();
+  const formRef = useRef<CourseFormRef>(null);
   const { save, isPending } = useSaveCourse();
 
   const handleCreate = async (values: CourseFormValues) => {
@@ -39,17 +40,18 @@ export default function NewCoursePage() {
           </div>
         }
         actions={
-          <Link
-            href="/courses"
+          <button
+            type="button"
+            onClick={() => formRef.current?.requestCancel()}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white grad-nebula shadow-nebula hover:opacity-95 font-bold text-xs transition"
           >
             <ArrowLeft size={14} weight="bold" />
             <span>Về danh sách</span>
-          </Link>
+          </button>
         }
       />
 
-      <CourseForm onSubmit={handleCreate} isSubmitting={isPending} />
+      <CourseForm ref={formRef} onSubmit={handleCreate} isSubmitting={isPending} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, forwardRef, useImperativeHandle } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
@@ -23,7 +23,13 @@ import {
   Tag,
   ChalkboardTeacher,
   CurrencyCircleDollar,
+  TreeStructure,
+  CircleNotch,
 } from "@phosphor-icons/react";
+
+export interface CourseFormRef {
+  requestCancel: () => boolean;
+}
 
 interface CourseFormProps {
   initialValues?: Partial<CourseFormValues>;
@@ -32,16 +38,15 @@ interface CourseFormProps {
   isEditMode?: boolean;
 }
 
-export const CourseForm: React.FC<CourseFormProps> = ({
-  initialValues,
-  onSubmit,
-  isSubmitting = false,
-  isEditMode = false,
-}) => {
+export const CourseForm = forwardRef<CourseFormRef, CourseFormProps>(function CourseForm(
+  { initialValues, onSubmit, isSubmitting = false, isEditMode = false },
+  ref
+) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<"info" | "syllabus">("info");
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [previewThumbnail, setPreviewThumbnail] = useState<string>(
     initialValues?.thumbnailUrl || ""
   );
@@ -55,6 +60,7 @@ export const CourseForm: React.FC<CourseFormProps> = ({
     control,
     watch,
     setValue,
+    getValues,
     formState: { errors, isDirty },
   } = useForm<CourseFormSchemaType>({
     resolver: zodResolver(courseFormSchema),
@@ -74,13 +80,37 @@ export const CourseForm: React.FC<CourseFormProps> = ({
   const chapters = watch("chapters");
   const currentStatus = watch("status");
 
-  const handleCancelClick = () => {
-    if (isDirty) {
-      setShowCancelModal(true);
-    } else {
-      router.push("/courses");
-    }
+  const isFormModified = () => {
+    const vals = getValues();
+    const hasFieldChanges =
+      (vals.title?.trim() !== (initialValues?.title || "").trim()) ||
+      (vals.shortDescription?.trim() !== (initialValues?.shortDescription || "").trim()) ||
+      (vals.description?.trim() !== (initialValues?.description || "").trim()) ||
+      (vals.categoryId !== (initialValues?.categoryId || "")) ||
+      (vals.instructorId !== (initialValues?.instructorId || "")) ||
+      (Number(vals.priceVnd) !== (initialValues?.priceVnd ?? 0)) ||
+      (vals.status !== (initialValues?.status || "DRAFT"));
+
+    return (
+      isDirty ||
+      hasFieldChanges ||
+      previewThumbnail !== (initialValues?.thumbnailUrl || "") ||
+      JSON.stringify(vals.chapters || []) !== JSON.stringify(initialValues?.chapters || [])
+    );
   };
+
+  const handleCancelClick = () => {
+    if (isFormModified()) {
+      setShowCancelModal(true);
+      return false;
+    }
+    router.push("/courses");
+    return true;
+  };
+
+  useImperativeHandle(ref, () => ({
+    requestCancel: handleCancelClick,
+  }));
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -99,14 +129,15 @@ export const CourseForm: React.FC<CourseFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pb-24">
-      <div className="flex items-center gap-2 border-b border-purple-100 pb-3">
+      {/* Thanh tab căn giữa và căn đều chuẩn theo phong cách A-05 Course Detail */}
+      <div className="bg-white border-b border-purple-100 grid grid-cols-2 shrink-0 mb-6">
         <button
           type="button"
           onClick={() => setActiveTab("info")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+          className={`py-3.5 text-xs font-bold border-b-2 transition flex items-center justify-center gap-2 text-center ${
             activeTab === "info"
-              ? "bg-purple-100 text-purple-800 border border-purple-200 shadow-2xs"
-              : "text-neutral-600 hover:text-purple-700 hover:bg-purple-50"
+              ? "border-purple-600 text-purple-700"
+              : "border-transparent text-neutral-500 hover:text-purple-700 font-semibold"
           }`}
         >
           <Info size={16} />
@@ -115,16 +146,14 @@ export const CourseForm: React.FC<CourseFormProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab("syllabus")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+          className={`py-3.5 text-xs font-bold border-b-2 transition flex items-center justify-center gap-2 text-center ${
             activeTab === "syllabus"
-              ? "bg-purple-100 text-purple-800 border border-purple-200 shadow-2xs"
-              : "text-neutral-600 hover:text-purple-700 hover:bg-purple-50"
+              ? "border-purple-600 text-purple-700"
+              : "border-transparent text-neutral-500 hover:text-purple-700 font-semibold"
           }`}
         >
-          <span>Đề cương bài học</span>
-          <span className="px-1.5 py-0.5 rounded-full bg-purple-200/70 text-purple-800 text-[10px] font-mono">
-            {chapters?.length || 0}
-          </span>
+          <TreeStructure size={16} />
+          <span>Cấu trúc bài giảng ({chapters?.length || 0})</span>
         </button>
       </div>
 
@@ -187,19 +216,14 @@ export const CourseForm: React.FC<CourseFormProps> = ({
             </div>
 
             <div className="bg-white p-6 rounded-2xl border border-purple-100 shadow-xs space-y-4">
-              <div className="border-b border-purple-50 pb-3 flex items-center justify-between">
-                <div>
-                  <h3 className="text-xs font-bold text-purple-900 uppercase tracking-wider flex items-center gap-2">
-                    <UploadSimple size={16} className="text-purple-600" />
-                    <span>Ảnh bìa khóa học</span>
-                  </h3>
-                  <p className="text-[11px] text-neutral-500 mt-1">
-                    Hình ảnh hiển thị đại diện trên catalog và trang chi tiết.
-                  </p>
-                </div>
-                <span className="text-[10px] text-purple-700 font-semibold bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">
-                  Tỷ lệ 16:9 (Bắt buộc)
-                </span>
+              <div className="border-b border-purple-50 pb-3">
+                <h3 className="text-xs font-bold text-purple-900 uppercase tracking-wider flex items-center gap-2">
+                  <UploadSimple size={16} className="text-purple-600" />
+                  <span>Ảnh bìa khóa học</span>
+                </h3>
+                <p className="text-[11px] text-neutral-500 mt-1">
+                  Hình ảnh hiển thị đại diện trên catalog và trang chi tiết.
+                </p>
               </div>
 
               <input
@@ -240,7 +264,37 @@ export const CourseForm: React.FC<CourseFormProps> = ({
               ) : (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="aspect-video w-full rounded-2xl border-2 border-dashed border-purple-200 hover:border-purple-500 bg-purple-50/30 hover:bg-purple-50/60 flex flex-col items-center justify-center text-neutral-500 cursor-pointer transition p-6 text-center group"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDragging(false);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDragging(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (
+                      file &&
+                      (file.type === "image/jpeg" ||
+                        file.type === "image/png" ||
+                        file.type === "image/webp")
+                    ) {
+                      const objectUrl = URL.createObjectURL(file);
+                      setPreviewThumbnail(objectUrl);
+                      setValue("thumbnailUrl", objectUrl, { shouldDirty: true });
+                    }
+                  }}
+                  className={`aspect-video w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition p-6 text-center group ${
+                    isDragging
+                      ? "border-purple-600 bg-purple-100/70 scale-[1.01]"
+                      : "border-purple-200 hover:border-purple-500 bg-purple-50/30 hover:bg-purple-50/60"
+                  }`}
                 >
                   <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-2xl mb-2 group-hover:scale-110 transition duration-200 shadow-2xs">
                     <UploadSimple size={24} />
@@ -325,7 +379,7 @@ export const CourseForm: React.FC<CourseFormProps> = ({
             <div className="bg-white p-5 rounded-2xl border border-purple-100 shadow-xs space-y-4">
               <h3 className="text-xs font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1.5 border-b border-purple-50 pb-2.5">
                 <CurrencyCircleDollar size={16} className="text-purple-600" />
-                <span>Cấu hình giá & Trạng thái</span>
+                <span>Cấu hình giá &amp; Trạng thái</span>
               </h3>
 
               <div>
@@ -351,35 +405,46 @@ export const CourseForm: React.FC<CourseFormProps> = ({
 
               <div>
                 <label className="text-xs font-bold text-neutral-800 block mb-1.5">
-                  Trạng thái khóa học <span className="text-red-500">*</span>
+                  {!isEditMode ? "Trạng thái ban đầu *" : "Trạng thái xuất bản *"}
                 </label>
                 <select
                   {...register("status")}
-                  className="w-full px-3 py-2 text-xs bg-neutral-50 border border-neutral-200 rounded-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-500/20 font-semibold text-neutral-800 transition"
+                  disabled={!isEditMode}
+                  className={`w-full px-3 py-2 text-xs border rounded-lg focus:outline-none focus:ring-2 font-semibold text-neutral-800 transition ${
+                    !isEditMode
+                      ? "bg-slate-100 text-slate-500 border-neutral-200 cursor-not-allowed"
+                      : "bg-neutral-50 border-neutral-200 focus:border-purple-600 focus:ring-purple-500/20"
+                  }`}
                 >
                   <option value="DRAFT">Bản nháp (Đang soạn thảo)</option>
                   <option value="PUBLISHED">Công khai (Đã xuất bản)</option>
                   <option value="ARCHIVED">Lưu trữ / Ẩn</option>
                 </select>
 
-                <div className="mt-2 text-[11px] flex items-center gap-1.5 text-neutral-500">
-                  <span>Trạng thái hiện tại:</span>
-                  <span
-                    className={`font-bold ${
-                      currentStatus === "PUBLISHED"
-                        ? "text-emerald-600"
+                {!isEditMode ? (
+                  <p className="text-[11px] text-neutral-400 mt-1.5 leading-relaxed">
+                    Khóa học mới tạo mặc định ở trạng thái Bản nháp cho đến khi hoàn tất nội dung bài giảng.
+                  </p>
+                ) : (
+                  <div className="mt-2 text-[11px] flex items-center gap-1.5 text-neutral-500">
+                    <span>Trạng thái hiện tại:</span>
+                    <span
+                      className={`font-bold ${
+                        currentStatus === "PUBLISHED"
+                          ? "text-emerald-600"
+                          : currentStatus === "DRAFT"
+                          ? "text-amber-600"
+                          : "text-neutral-500"
+                      }`}
+                    >
+                      {currentStatus === "PUBLISHED"
+                        ? "Đã xuất bản"
                         : currentStatus === "DRAFT"
-                        ? "text-amber-600"
-                        : "text-neutral-500"
-                    }`}
-                  >
-                    {currentStatus === "PUBLISHED"
-                      ? "Đã xuất bản"
-                      : currentStatus === "DRAFT"
-                      ? "Bản nháp"
-                      : "Lưu trữ"}
-                  </span>
-                </div>
+                        ? "Bản nháp"
+                        : "Lưu trữ"}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -395,7 +460,7 @@ export const CourseForm: React.FC<CourseFormProps> = ({
         </div>
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-purple-100 px-8 flex items-center justify-between z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.03)]">
+      <div className="fixed bottom-0 left-64 right-0 h-16 bg-white border-t border-purple-100 px-8 flex items-center justify-between z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.03)]">
         <button
           type="button"
           onClick={handleCancelClick}
@@ -424,7 +489,10 @@ export const CourseForm: React.FC<CourseFormProps> = ({
             className="px-6 py-2 rounded-xl text-white font-bold text-xs hover:opacity-95 transition shadow-md disabled:opacity-50 flex items-center gap-1.5"
           >
             {isSubmitting ? (
-              <span>Đang lưu...</span>
+              <div className="flex items-center gap-1.5">
+                <CircleNotch size={16} weight="bold" className="animate-spin" />
+                <span>{isEditMode ? "Đang cập nhật..." : "Đang tạo khóa học..."}</span>
+              </div>
             ) : isEditMode ? (
               <>
                 <Check size={16} weight="bold" />
@@ -470,4 +538,4 @@ export const CourseForm: React.FC<CourseFormProps> = ({
       </Modal>
     </form>
   );
-};
+});
