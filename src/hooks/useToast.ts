@@ -56,3 +56,10 @@ export const toast = {
   warning: (message: string) => useToastStore.getState().push("warning", message),
   info: (message: string) => useToastStore.getState().push("info", message),
 };
+
+export function useToast() {
+  return {
+    toast,
+    showToast: ({ type, message }: { type: ToastType; message: string }) => toast[type](message),
+  };
+}
