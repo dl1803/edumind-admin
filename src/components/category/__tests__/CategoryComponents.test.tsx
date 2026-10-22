@@ -1,0 +1,187 @@
+import React from "react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { CategoryTable } from "../CategoryTable";
+import { CategoryFormModal } from "../CategoryFormModal";
+import { DeleteCategoryModal } from "../DeleteCategoryModal";
+import { Category } from "@/types/category.types";
+
+const mockCategories: Category[] = [
+  {
+    id: "cat-1",
+    name: "Lập trình Python",
+    slug: "lap-trinh-python",
+    description: "Khóa học Python căn bản",
+    courseCount: 12,
+    status: "ACTIVE",
+  },
+  {
+    id: "cat-2",
+    name: "Thiết kế UI/UX",
+    slug: "thiet-ke-ui-ux",
+    description: "Figma và Design System",
+    courseCount: 0,
+    status: "INACTIVE",
+  },
+];
+
+describe("CategoryTable Component", () => {
+  it("render danh sách danh mục với các cột dữ liệu và trạng thái Zero-Pill", () => {
+    const handleEdit = jest.fn();
+    const handleDelete = jest.fn();
+
+    render(
+      <CategoryTable
+        categories={mockCategories}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
+    );
+
+    expect(screen.getByText("Lập trình Python")).toBeInTheDocument();
+    expect(screen.getByText("12 khóa học")).toBeInTheDocument();
+    expect(screen.getByText("Hoạt động")).toBeInTheDocument();
+
+    expect(screen.getByText("Thiết kế UI/UX")).toBeInTheDocument();
+    expect(screen.getByText("0 khóa học")).toBeInTheDocument();
+    expect(screen.getByText("Tạm ẩn")).toBeInTheDocument();
+  });
+
+  it("gọi onEdit và onDelete khi tương tác nút bấm", () => {
+    const handleEdit = jest.fn();
+    const handleDelete = jest.fn();
+
+    render(
+      <CategoryTable
+        categories={mockCategories}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
+    );
+
+    const editBtns = screen.getAllByTitle("Chỉnh sửa danh mục");
+    fireEvent.click(editBtns[0]);
+    expect(handleEdit).toHaveBeenCalledWith(mockCategories[0]);
+
+    const deleteBtns = screen.getAllByTitle("Xóa danh mục");
+    fireEvent.click(deleteBtns[1]);
+    expect(handleDelete).toHaveBeenCalledWith(mockCategories[1]);
+  });
+
+  it("hiển thị thông báo rỗng khi không có danh mục", () => {
+    render(<CategoryTable categories={[]} onEdit={jest.fn()} onDelete={jest.fn()} />);
+
+    expect(screen.getByText("Chưa có danh mục nào")).toBeInTheDocument();
+  });
+});
+
+describe("CategoryFormModal Component", () => {
+  it("không hiển thị khi isOpen = false", () => {
+    render(
+      <CategoryFormModal
+        isOpen={false}
+        onClose={jest.fn()}
+        onSubmit={jest.fn()}
+      />
+    );
+
+    expect(screen.queryByText("Thêm danh mục mới")).not.toBeInTheDocument();
+  });
+
+  it("hiển thị tiêu đề Thêm danh mục mới khi tạo mới", () => {
+    render(
+      <CategoryFormModal
+        isOpen={true}
+        onClose={jest.fn()}
+        onSubmit={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText("Thêm danh mục mới")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Nhập tên danh mục/i)).toBeInTheDocument();
+  });
+
+  it("tự động điền dữ liệu khi chỉnh sửa danh mục", () => {
+    render(
+      <CategoryFormModal
+        isOpen={true}
+        onClose={jest.fn()}
+        onSubmit={jest.fn()}
+        initialData={mockCategories[0]}
+      />
+    );
+
+    expect(screen.getByText("Chỉnh sửa danh mục")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Lập trình Python")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("lap-trinh-python")).toBeInTheDocument();
+  });
+
+  it("gọi onClose khi nhấn nút Hủy hoặc X", () => {
+    const handleClose = jest.fn();
+    render(
+      <CategoryFormModal
+        isOpen={true}
+        onClose={handleClose}
+        onSubmit={jest.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByTitle("Đóng"));
+    expect(handleClose).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
+    expect(handleClose).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("DeleteCategoryModal Component", () => {
+  it("không hiển thị khi isOpen = false hoặc category = null", () => {
+    render(
+      <DeleteCategoryModal
+        isOpen={false}
+        category={null}
+        onClose={jest.fn()}
+        onConfirm={jest.fn()}
+      />
+    );
+
+    expect(screen.queryByText("Không thể xóa danh mục")).not.toBeInTheDocument();
+    expect(screen.queryByText("Xóa danh mục khóa học?")).not.toBeInTheDocument();
+  });
+
+  it("hiển thị cảnh báo chặn xóa khi danh mục có khóa học (courseCount > 0)", () => {
+    const handleClose = jest.fn();
+    render(
+      <DeleteCategoryModal
+        isOpen={true}
+        category={mockCategories[0]} // courseCount = 12
+        onClose={handleClose}
+        onConfirm={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText("Không thể xóa danh mục")).toBeInTheDocument();
+    expect(screen.getByText("12 khóa học")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Xóa vĩnh viễn" })).not.toBeInTheDocument();
+
+    const understandBtn = screen.getByRole("button", { name: "Đã hiểu" });
+    fireEvent.click(understandBtn);
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("hiển thị modal xác nhận xóa khi danh mục không có khóa học (courseCount === 0)", () => {
+    const handleConfirm = jest.fn();
+    render(
+      <DeleteCategoryModal
+        isOpen={true}
+        category={mockCategories[1]} // courseCount = 0
+        onClose={jest.fn()}
+        onConfirm={handleConfirm}
+      />
+    );
+
+    expect(screen.getByText("Xóa danh mục khóa học?")).toBeInTheDocument();
+    const deleteBtn = screen.getByRole("button", { name: "Xóa vĩnh viễn" });
+    fireEvent.click(deleteBtn);
+    expect(handleConfirm).toHaveBeenCalledWith(mockCategories[1]);
+  });
+});
