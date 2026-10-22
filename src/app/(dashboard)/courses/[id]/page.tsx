@@ -9,9 +9,9 @@ import { CourseOutlineReadOnly } from "@/components/course/CourseOutlineReadOnly
 import { CoursePublishChecklist } from "@/components/course/CoursePublishChecklist";
 import { AddChapterModal } from "@/components/course/AddChapterModal";
 import { TopBarContent } from "@/context/TopBarContext";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import { CourseStatus } from "@/types/course.types";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
   CaretRight,
   PencilSimple,
@@ -20,7 +20,6 @@ import {
   TreeStructure,
   RocketLaunch,
   WarningCircle,
-  ArrowLeft,
   ArrowClockwise,
 } from "@phosphor-icons/react";
 
@@ -57,36 +56,65 @@ export default function CourseDetailPage() {
                 Danh sách khóa học
               </Link>
               <CaretRight size={10} className="text-neutral-400" />
-              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 w-32" />
             </div>
           }
-          actions={
-            <Link
-              href="/courses"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white grad-nebula shadow-nebula font-bold text-xs"
-            >
-              <ArrowLeft size={14} weight="bold" />
-              <span>Về danh sách</span>
-            </Link>
-          }
+          actions={<Skeleton className="h-9 w-36 rounded-xl" />}
         />
 
-        <div className="grid grid-cols-3 gap-3 bg-white p-2 rounded-2xl border border-purple-100 shadow-xs">
-          <Skeleton className="h-10 w-full rounded-xl" />
-          <Skeleton className="h-10 w-full rounded-xl" />
-          <Skeleton className="h-10 w-full rounded-xl" />
+        {/* Tab Header Skeleton */}
+        <div className="flex items-center gap-6 border-b border-neutral-200 pb-1">
+          <Skeleton className="h-9 w-28 rounded-lg" />
+          <Skeleton className="h-9 w-36 rounded-lg" />
+          <Skeleton className="h-9 w-44 rounded-lg" />
         </div>
 
+        {/* 2 Cột Skeleton đồng bộ cấu trúc CourseInfoCard */}
         <div className="grid grid-cols-12 gap-6">
+          {/* Cột trái (5 cols) */}
           <div className="col-span-12 lg:col-span-5 space-y-5">
-            <Skeleton className="aspect-video w-full rounded-2xl" />
-            <Skeleton className="h-44 w-full rounded-2xl" />
-            <Skeleton className="h-32 w-full rounded-2xl" />
+            <div className="bg-white p-3 rounded-2xl shadow-xs">
+              <Skeleton className="aspect-video w-full rounded-xl" />
+            </div>
+            <div className="bg-white p-5 rounded-2xl shadow-xs space-y-3">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-5 w-48" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <div className="bg-white p-4 rounded-2xl shadow-xs grid grid-cols-2 gap-3">
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+            </div>
           </div>
-          <div className="col-span-12 lg:col-span-7 space-y-5">
-            <Skeleton className="h-96 w-full rounded-2xl" />
+
+          {/* Cột phải (7 cols) */}
+          <div className="col-span-12 lg:col-span-7">
+            <div className="bg-white p-6 rounded-2xl shadow-xs space-y-5">
+              <Skeleton className="h-6 w-24 rounded-md" />
+              <Skeleton className="h-8 w-4/5" />
+              <div className="py-3 border-y border-neutral-100 flex justify-between items-center">
+                <Skeleton className="h-12 w-32" />
+                <Skeleton className="h-12 w-36" />
+              </div>
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-20 w-full rounded-xl" />
+              </div>
+              <div className="space-y-2 pt-3 border-t border-neutral-100">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+              </div>
+              <div className="flex justify-between items-center pt-4 border-t border-neutral-100">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+            </div>
           </div>
         </div>
+        <span className="sr-only">Đang tải thông tin khóa học...</span>
       </div>
     );
   }
@@ -109,7 +137,7 @@ export default function CourseDetailPage() {
           }
         />
 
-        <div className="max-w-md w-full text-center space-y-4 bg-white p-8 rounded-2xl border border-purple-100 shadow-xs">
+        <div className="max-w-md w-full text-center space-y-4 bg-white p-8 rounded-2xl shadow-xs">
           <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto text-2xl font-bold">
             <WarningCircle size={32} weight="fill" />
           </div>
@@ -225,7 +253,7 @@ export default function CourseDetailPage() {
       />
 
       {/* 3 Tabs chính */}
-      <div className="bg-white border border-purple-100 rounded-2xl shadow-xs grid grid-cols-3 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-xs grid grid-cols-3 overflow-hidden">
         <button
           type="button"
           onClick={() => setActiveTab("tab1")}
@@ -268,7 +296,7 @@ export default function CourseDetailPage() {
 
       {/* Tab Panels */}
       {activeTab === "tab1" && (
-        <CourseInfoCard course={effectiveCourse} onTogglePublish={handleTogglePublish} />
+        <CourseInfoCard course={effectiveCourse} />
       )}
 
       {activeTab === "tab2" && (
@@ -281,7 +309,6 @@ export default function CourseDetailPage() {
       {activeTab === "tab3" && (
         <CoursePublishChecklist
           course={effectiveCourse}
-          onTogglePublish={handleTogglePublish}
         />
       )}
 

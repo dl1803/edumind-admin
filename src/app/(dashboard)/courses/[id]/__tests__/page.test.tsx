@@ -82,7 +82,7 @@ describe("CourseDetailPage (A-05 Page Assembly)", () => {
     jest.clearAllMocks();
   });
 
-  it("hiển thị skeleton khi đang tải dữ liệu (isLoading = true)", () => {
+  it("hiển thị trạng thái đang tải dữ liệu (isLoading = true)", () => {
     mockUseCourse.mockReturnValue({
       data: undefined,
       isLoading: true,
@@ -92,7 +92,7 @@ describe("CourseDetailPage (A-05 Page Assembly)", () => {
 
     render(<CourseDetailPage />);
 
-    expect(screen.getByText("Về danh sách")).toBeInTheDocument();
+    expect(screen.getByText("Đang tải thông tin khóa học...")).toBeInTheDocument();
   });
 
   it("hiển thị giao diện thông báo lỗi khi không tìm thấy khóa học (isError = true)", () => {
@@ -175,7 +175,7 @@ describe("CourseDetailPage (A-05 Page Assembly)", () => {
     expect(screen.getByText("Học thử bài đầu tiên")).toBeInTheDocument();
   });
 
-  it("thao tác Tạm ẩn khóa học gọi toast thông báo", () => {
+  it("hiển thị chi tiết 3 điều kiện và cấu hình phân phối ở Tab 3", () => {
     mockUseCourse.mockReturnValue({
       data: mockCourseData,
       isLoading: false,
@@ -185,11 +185,12 @@ describe("CourseDetailPage (A-05 Page Assembly)", () => {
 
     render(<CourseDetailPage />);
 
-    const toggleBtn = screen.getByText("Tạm ẩn khóa học");
-    fireEvent.click(toggleBtn);
+    const tab3Btn = screen.getByRole("button", { name: /Xuất bản & Điều kiện/i });
+    fireEvent.click(tab3Btn);
 
-    expect(toast.success).toHaveBeenCalledWith(
-      "Đã tạm ẩn khóa học vào chế độ bản nháp"
-    );
+    expect(screen.getByText("Điều kiện xuất bản khóa học")).toBeInTheDocument();
+    expect(
+      screen.getByText("100% video bài giảng đã bóc băng Whisper STT và nhúng Vector pgvector")
+    ).toBeInTheDocument();
   });
 });

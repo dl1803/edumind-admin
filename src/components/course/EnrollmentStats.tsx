@@ -20,8 +20,8 @@ export function EnrollmentStats({
   };
 
   return (
-    <div className="bg-white p-4 rounded-2xl border border-purple-100 shadow-xs grid grid-cols-2 gap-3">
-      <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-100 flex items-center gap-3">
+    <div className="bg-white p-4 rounded-2xl shadow-xs grid grid-cols-2 gap-3">
+      <div className="p-3 rounded-xl bg-purple-50/40 flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg shrink-0">
           <Users size={20} weight="fill" />
         </div>
@@ -33,7 +33,7 @@ export function EnrollmentStats({
         </div>
       </div>
 
-      <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-100 flex items-center gap-3">
+      <div className="p-3 rounded-xl bg-indigo-50/40 flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-lg shrink-0">
           <Folders size={20} weight="fill" />
         </div>
@@ -45,7 +45,7 @@ export function EnrollmentStats({
         </div>
       </div>
 
-      <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-100 flex items-center gap-3">
+      <div className="p-3 rounded-xl bg-blue-50/40 flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-lg shrink-0">
           <FilmStrip size={20} weight="fill" />
         </div>
@@ -57,7 +57,7 @@ export function EnrollmentStats({
         </div>
       </div>
 
-      <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-100 flex items-center gap-3">
+      <div className="p-3 rounded-xl bg-emerald-50/40 flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg shrink-0">
           <Clock size={20} weight="fill" />
         </div>

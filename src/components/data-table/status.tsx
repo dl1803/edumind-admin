@@ -46,6 +46,16 @@ export const STATUS_MAP: Record<string, StatusConfig> = {
     tone: "danger",
     icon: <WarningCircle size={14} weight="fill" className="text-rose-700" />,
   },
+  READY: {
+    label: "Sẵn sàng",
+    tone: "success",
+    icon: <CheckCircle size={14} weight="fill" className="text-emerald-700" />,
+  },
+  NOT_READY: {
+    label: "Chưa sẵn sàng",
+    tone: "danger",
+    icon: <WarningCircle size={14} weight="fill" className="text-rose-700" />,
+  },
 };
 
 const toneColorMap: Record<StatusTone, string> = {

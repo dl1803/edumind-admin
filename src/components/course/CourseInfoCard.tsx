@@ -3,25 +3,30 @@ import Image from "next/image";
 import { CourseDetailExtended } from "@/hooks/useCourse";
 import { EnrollmentStats } from "./EnrollmentStats";
 import { StatusText } from "@/components/ui/StatusText";
-import { ChalkboardTeacher, Check, EyeSlash, Code } from "@phosphor-icons/react";
+import { ChalkboardTeacher, Check, Code } from "@phosphor-icons/react";
 
 interface CourseInfoCardProps {
   course: CourseDetailExtended;
-  onTogglePublish?: () => void;
 }
 
-export function CourseInfoCard({ course, onTogglePublish }: CourseInfoCardProps) {
+export function CourseInfoCard({ course }: CourseInfoCardProps) {
   const formatPrice = (val?: number) => {
     if (typeof val !== "number" || isNaN(val)) return "—";
     return `${val.toLocaleString("vi-VN")}đ`;
   };
 
+  const formattedDate = course.createdAt
+    ? new Date(course.createdAt).toLocaleDateString("vi-VN")
+    : "14/08/2026";
+
   return (
     <div className="grid grid-cols-12 gap-6 max-w-5xl mx-auto">
+      {/* CỘT TRÁI (5 CỘT) */}
       <div className="col-span-12 lg:col-span-5 space-y-5">
-        <div className="bg-white p-3 rounded-2xl border border-purple-100 shadow-xs">
+        {/* Ảnh bìa */}
+        <div className="bg-white p-3 rounded-2xl shadow-xs">
           {course.thumbnailUrl ? (
-            <div className="aspect-video w-full rounded-xl overflow-hidden relative border border-purple-50">
+            <div className="aspect-video w-full rounded-xl overflow-hidden relative">
               <Image
                 src={course.thumbnailUrl}
                 alt={course.title}
@@ -40,23 +45,23 @@ export function CourseInfoCard({ course, onTogglePublish }: CourseInfoCardProps)
           )}
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-purple-100 shadow-xs space-y-3">
-          <h4 className="text-xs font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1.5 border-b border-purple-50 pb-2">
+        {/* Giảng viên phụ trách */}
+        <div className="bg-white p-5 rounded-2xl shadow-xs space-y-2">
+          <h4 className="text-xs font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1.5 pb-1">
             <ChalkboardTeacher size={16} weight="fill" className="text-purple-600" />
             <span>Giảng viên phụ trách</span>
           </h4>
           <div>
-            <h5 className="text-xs font-bold text-neutral-900">{course.instructorName}</h5>
-            <p className="text-[11px] text-purple-700 font-medium mt-0.5">Khoa Công nghệ Thông tin</p>
-            <p className="text-[10px] text-neutral-400 mt-1 font-mono">
-              giangvien@edumind.vn <span className="text-neutral-300 mx-1">|</span> Giảng viên cơ hữu
+            <h5 className="text-sm font-bold text-neutral-900">
+              {course.instructorName || "Chưa phân công"}
+            </h5>
+            <p className="text-xs text-neutral-500 mt-0.5">
+              {course.instructorTitle || "Khoa Công nghệ Thông tin, Đại học Quốc gia Hà Nội"}
             </p>
           </div>
-          <p className="text-[11px] text-neutral-600 leading-relaxed bg-purple-50/40 p-2.5 rounded-xl border border-purple-100">
-            Giảng viên chuyên môn chịu trách nhiệm biên soạn đề cương, ghi hình bài giảng và kiểm duyệt ngân hàng câu hỏi AI.
-          </p>
         </div>
 
+        {/* Thống kê 4 số liệu */}
         <EnrollmentStats
           studentCount={course.studentCount}
           chapterCount={course.chapterCount}
@@ -65,54 +70,43 @@ export function CourseInfoCard({ course, onTogglePublish }: CourseInfoCardProps)
         />
       </div>
 
-      <div className="col-span-12 lg:col-span-7 space-y-5">
-        <div className="bg-white p-6 rounded-2xl border border-purple-100 shadow-xs space-y-5">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 font-bold text-[11px] border border-blue-100">
-                {course.categoryName || "Chung"}
-              </span>
-              <StatusText status={course.status} />
-            </div>
-
-            {onTogglePublish && (
-              <button
-                type="button"
-                onClick={onTogglePublish}
-                className="px-3 py-1.5 border border-slate-300 hover:bg-slate-50 text-slate-600 text-xs font-medium rounded-lg flex items-center gap-1.5 transition shadow-2xs"
-              >
-                <EyeSlash size={14} />
-                <span>{course.status === "PUBLISHED" ? "Tạm ẩn khóa học" : "Xuất bản khóa học"}</span>
-              </button>
-            )}
+      {/* CỘT PHẢI (7 CỘT) */}
+      <div className="col-span-12 lg:col-span-7">
+        <div className="bg-white p-6 rounded-2xl shadow-xs space-y-5">
+          {/* Hàng đầu: Danh mục */}
+          <div>
+            <span className="px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 font-bold text-[11px]">
+              {course.categoryName || "Chung"}
+            </span>
           </div>
 
+          {/* Tên khóa học */}
           <h2 className="text-xl font-bold text-neutral-900 leading-snug">
             {course.title}
           </h2>
 
-          <div className="p-3.5 bg-neutral-50 rounded-xl border border-neutral-200 flex items-center justify-between">
+          {/* Giá bán và doanh thu (phẳng, tinh tế, không đóng khung hộp dày) */}
+          <div className="flex items-center justify-between py-2 border-y border-neutral-100">
             <div>
               <span className="text-[10px] text-neutral-400 uppercase font-bold block">
                 Giá bán chính thức
               </span>
-              <div className="flex items-baseline gap-2 mt-0.5">
-                <span className="text-2xl font-black text-neutral-900 font-mono">
-                  {formatPrice(course.priceVnd)}
-                </span>
-              </div>
+              <span className="text-2xl font-black text-neutral-900 font-mono mt-0.5 block">
+                {formatPrice(course.priceVnd)}
+              </span>
             </div>
             <div className="text-right">
               <span className="text-[10px] text-neutral-400 uppercase font-bold block">
                 Doanh thu tích lũy (ước tính)
               </span>
-              <span className="text-base font-bold text-emerald-700 font-mono">
+              <span className="text-base font-bold text-emerald-700 font-mono mt-0.5 block">
                 {formatPrice(course.accumulatedRevenueVnd)}
               </span>
             </div>
           </div>
 
-          <div className="space-y-4">
+          {/* Mô tả, mục tiêu, yêu cầu */}
+          <div className="space-y-4 pt-1">
             <div>
               <h4 className="text-xs font-bold text-neutral-800 uppercase tracking-wider mb-2">
                 Mô tả khóa học
@@ -123,7 +117,7 @@ export function CourseInfoCard({ course, onTogglePublish }: CourseInfoCardProps)
             </div>
 
             {course.learningOutcomes && course.learningOutcomes.length > 0 && (
-              <div className="space-y-2 pt-3 border-t border-slate-100">
+              <div className="space-y-2 pt-3 border-t border-neutral-100">
                 <h5 className="text-xs font-bold text-neutral-800 uppercase tracking-wider">
                   Mục tiêu &amp; Chuẩn đầu ra
                 </h5>
@@ -139,7 +133,7 @@ export function CourseInfoCard({ course, onTogglePublish }: CourseInfoCardProps)
             )}
 
             {course.prerequisites && course.prerequisites.length > 0 && (
-              <div className="space-y-2 pt-3 border-t border-slate-100">
+              <div className="space-y-2 pt-3 border-t border-neutral-100">
                 <h5 className="text-xs font-bold text-neutral-800 uppercase tracking-wider">
                   Yêu cầu tham gia
                 </h5>
@@ -153,13 +147,12 @@ export function CourseInfoCard({ course, onTogglePublish }: CourseInfoCardProps)
                 </ul>
               </div>
             )}
+          </div>
 
-            <div className="text-xs text-slate-400 pt-3 text-right">
-              Khởi tạo ngày{" "}
-              {course.createdAt
-                ? new Date(course.createdAt).toLocaleDateString("vi-VN")
-                : "14/08/2026"}
-            </div>
+          {/* Hàng chân trang: Ngày tạo góc trái, Trạng thái góc phải */}
+          <div className="flex items-center justify-between text-xs pt-4 border-t border-neutral-100">
+            <span className="text-neutral-400">Khởi tạo ngày {formattedDate}</span>
+            <StatusText status={course.status} />
           </div>
         </div>
       </div>

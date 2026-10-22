@@ -25,7 +25,6 @@ export function CourseOutlineReadOnly({
     chapterOrder: number;
   } | null>(null);
 
-  // Mặc định mở rộng tất cả các chương
   const [expandedChapterIds, setExpandedChapterIds] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     chapters.forEach((c) => {
@@ -43,7 +42,7 @@ export function CourseOutlineReadOnly({
 
   if (chapters.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-purple-100 p-12 text-center max-w-5xl mx-auto space-y-3">
+      <div className="bg-white rounded-2xl p-12 text-center max-w-5xl mx-auto space-y-3 shadow-xs">
         <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto text-xl">
           <FolderSimplePlus size={28} />
         </div>
@@ -56,7 +55,7 @@ export function CourseOutlineReadOnly({
             <button
               type="button"
               onClick={onAddChapter}
-              className="px-4 py-2 rounded-xl text-white grad-nebula text-xs font-bold inline-flex items-center gap-1.5 shadow-nebula hover:opacity-95 transition"
+              className="px-4 py-2 rounded-xl text-white grad-nebula text-xs font-bold inline-flex items-center gap-1.5 shadow-nebula hover:opacity-95 transition cursor-pointer"
             >
               <FolderSimplePlus size={16} weight="bold" />
               <span>Thêm chương học đầu tiên</span>
@@ -68,7 +67,7 @@ export function CourseOutlineReadOnly({
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-5">
+    <div className="max-w-5xl mx-auto space-y-4">
       {chapters.map((chapter) => {
         const isExpanded = expandedChapterIds[chapter.id] ?? true;
         const lessonList = chapter.lessons || [];
@@ -76,13 +75,13 @@ export function CourseOutlineReadOnly({
         return (
           <div
             key={chapter.id}
-            className="bg-white rounded-2xl border border-purple-100 shadow-xs overflow-hidden"
+            className="bg-white rounded-2xl shadow-xs overflow-hidden"
           >
             <div
               onClick={() => toggleChapter(chapter.id)}
-              className="p-4 bg-purple-50/60 border-b border-purple-100 flex items-center justify-between cursor-pointer select-none hover:bg-purple-100/40 transition"
+              className="p-4 flex items-center justify-between cursor-pointer select-none hover:bg-neutral-50/70 transition"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <DotsSixVertical
                   size={16}
                   className="text-slate-300 hover:text-slate-600 shrink-0"
@@ -93,8 +92,8 @@ export function CourseOutlineReadOnly({
                 <h4 className="text-xs font-bold text-neutral-900">{chapter.title}</h4>
               </div>
 
-              <div className="flex items-center gap-2.5">
-                <span className="text-[11px] font-semibold text-purple-700 bg-purple-100/70 px-2.5 py-1 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] font-semibold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-lg">
                   {lessonList.length} bài học
                 </span>
                 <CaretDown
@@ -110,15 +109,15 @@ export function CourseOutlineReadOnly({
             {isExpanded && (
               <>
                 {lessonList.length === 0 ? (
-                  <div className="p-4 bg-neutral-50/30">
-                    <div className="border border-dashed border-purple-200/80 rounded-xl p-3 text-center">
-                      <span className="text-xs text-purple-600 font-medium">
+                  <div className="p-4 pt-1 pb-4">
+                    <div className="bg-neutral-50 rounded-xl p-3 text-center">
+                      <span className="text-xs text-neutral-400 font-medium">
                         Chưa có bài học nào trong chương này
                       </span>
                     </div>
                   </div>
                 ) : (
-                  <div className="divide-y divide-purple-50 p-2 text-xs">
+                  <div className="divide-y divide-neutral-100 px-4 pb-2 text-xs">
                     {lessonList.map((lesson) => (
                       <div
                         key={lesson.id}
@@ -129,9 +128,9 @@ export function CourseOutlineReadOnly({
                             chapterOrder: chapter.order,
                           })
                         }
-                        className="p-2.5 hover:bg-purple-50/40 rounded-xl transition flex items-center justify-between group cursor-pointer border border-transparent hover:border-purple-200"
+                        className="py-3 px-2 hover:bg-neutral-50/70 rounded-xl transition flex items-center justify-between group cursor-pointer"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex items-center gap-3 min-w-0">
                           <DotsSixVertical
                             size={14}
                             className="text-slate-300 hover:text-slate-600 shrink-0"
@@ -162,7 +161,15 @@ export function CourseOutlineReadOnly({
                         <div className="flex items-center gap-3 shrink-0">
                           <StatusText
                             status={lesson.pipelineStatus || "READY"}
-                            labelOverride="Vector Index Sẵn sàng"
+                            labelOverride={
+                              lesson.pipelineStatus === "PROCESSING"
+                                ? "Đang xử lý AI"
+                                : lesson.pipelineStatus === "FAILED"
+                                ? "Lỗi Vector Index"
+                                : lesson.pipelineStatus === "COMPLETED"
+                                ? "Hoàn tất"
+                                : "Vector Index Sẵn sàng"
+                            }
                           />
                         </div>
                       </div>
@@ -180,7 +187,7 @@ export function CourseOutlineReadOnly({
           <button
             type="button"
             onClick={onAddChapter}
-            className="w-full py-3.5 border-2 border-dashed border-purple-200 hover:border-purple-400 bg-white hover:bg-purple-50/40 rounded-2xl text-purple-700 font-bold text-xs flex items-center justify-center gap-2 transition shadow-xs cursor-pointer"
+            className="w-full py-3 bg-white hover:bg-purple-50/40 rounded-2xl text-purple-700 font-bold text-xs flex items-center justify-center gap-2 transition shadow-xs cursor-pointer"
           >
             <FolderSimplePlus size={16} weight="bold" />
             <span>+ Thêm chương học mới</span>

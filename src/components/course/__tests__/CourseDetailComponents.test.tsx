@@ -88,17 +88,11 @@ describe("Course Detail UI Components (A-05)", () => {
       ).toBeInTheDocument();
       expect(screen.getByText("499.000đ")).toBeInTheDocument();
       expect(screen.getByText("TS. Lê Hoàng Nam")).toBeInTheDocument();
+      expect(
+        screen.getByText("Khoa Công nghệ Thông tin, Đại học Quốc gia Hà Nội")
+      ).toBeInTheDocument();
       expect(screen.getByText("Khóa học đầy đủ từ cơ bản đến nâng cao.")).toBeInTheDocument();
       expect(screen.getByText(/Khởi tạo ngày/i)).toBeInTheDocument();
-    });
-
-    it("kích hoạt callback onTogglePublish khi nhấn nút tạm ẩn", () => {
-      const handleToggle = jest.fn();
-      render(<CourseInfoCard course={sampleCourse} onTogglePublish={handleToggle} />);
-
-      const toggleBtn = screen.getByText("Tạm ẩn khóa học");
-      fireEvent.click(toggleBtn);
-      expect(handleToggle).toHaveBeenCalledTimes(1);
     });
   });
 
