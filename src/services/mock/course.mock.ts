@@ -16,10 +16,10 @@ export const MOCK_CATEGORIES: Category[] = [
 ];
 
 export const MOCK_INSTRUCTORS: InstructorOption[] = [
-  { id: "inst-01", name: "TS. Lê Hoàng Nam", title: "Khoa CNTT, ĐHQG Hà Nội" },
-  { id: "inst-02", name: "ThS. Trần Trung", title: "AI Research Lab, Viện Hàn lâm" },
-  { id: "inst-03", name: "Kỹ sư Phạm Quốc Bảo", title: "Mobile Team Lead, FPT Software" },
-  { id: "inst-04", name: "ThS. Nguyễn Thị Mai", title: "Product Designer, VNG Corporation" },
+  { id: "inst-01", name: "TS. Lê Hoàng Nam", title: "Khoa Công nghệ Thông tin, Đại học Quốc gia Hà Nội" },
+  { id: "inst-02", name: "ThS. Trần Trung", title: "Viện Nghiên cứu Trí tuệ Nhân tạo, Viện Hàn lâm KH&CN" },
+  { id: "inst-03", name: "Kỹ sư Phạm Quốc Bảo", title: "Trưởng nhóm Kỹ thuật Di động, FPT Software" },
+  { id: "inst-04", name: "ThS. Nguyễn Thị Mai", title: "Chuyên gia Thiết kế Sản phẩm, VNG Corporation" },
 ];
 
 export const DEFAULT_SAMPLE_CHAPTERS: Chapter[] = [
@@ -53,6 +53,7 @@ export const MOCK_COURSES: Course[] = [
     categoryName: "Lập trình Python",
     instructorId: "inst-01",
     instructorName: "TS. Lê Hoàng Nam",
+    instructorTitle: "Khoa Công nghệ Thông tin, Đại học Quốc gia Hà Nội",
     priceVnd: 499000,
     status: "PUBLISHED",
     studentCount: 1250,
@@ -70,6 +71,7 @@ export const MOCK_COURSES: Course[] = [
     categoryName: "Khoa học Dữ liệu & AI",
     instructorId: "inst-02",
     instructorName: "ThS. Trần Trung",
+    instructorTitle: "Viện Nghiên cứu Trí tuệ Nhân tạo, Viện Hàn lâm KH&CN",
     priceVnd: 799000,
     status: "PUBLISHED",
     studentCount: 840,
@@ -87,6 +89,7 @@ export const MOCK_COURSES: Course[] = [
     categoryName: "Phát triển Web",
     instructorId: "inst-03",
     instructorName: "Kỹ sư Phạm Quốc Bảo",
+    instructorTitle: "Trưởng nhóm Kỹ thuật Di động, FPT Software",
     priceVnd: 599000,
     status: "DRAFT",
     studentCount: 0,
@@ -104,6 +107,7 @@ export const MOCK_COURSES: Course[] = [
     categoryName: "Thiết kế UI/UX",
     instructorId: "inst-04",
     instructorName: "ThS. Nguyễn Thị Mai",
+    instructorTitle: "Chuyên gia Thiết kế Sản phẩm, VNG Corporation",
     priceVnd: 450000,
     status: "ARCHIVED",
     studentCount: 320,
@@ -121,6 +125,7 @@ export const MOCK_COURSES: Course[] = [
     categoryName: "Khoa học Dữ liệu & AI",
     instructorId: "inst-02",
     instructorName: "ThS. Trần Trung",
+    instructorTitle: "Viện Nghiên cứu Trí tuệ Nhân tạo, Viện Hàn lâm KH&CN",
     priceVnd: 990000,
     status: "PUBLISHED",
     studentCount: 650,
@@ -216,8 +221,10 @@ export async function mockGetCourseById(id: string): Promise<Course> {
     };
     throw error;
   }
+  const instructor = MOCK_INSTRUCTORS.find((i) => i.id === found.instructorId);
   return {
     ...found,
+    instructorTitle: found.instructorTitle || instructor?.title,
     chapters: found.chapters && found.chapters.length > 0 ? found.chapters : DEFAULT_SAMPLE_CHAPTERS,
   };
 }
@@ -230,6 +237,7 @@ export async function mockCreateCourse(payload: CoursePayload): Promise<Course> 
     id: `crs-${Date.now()}`,
     ...payload,
     instructorName: instructor ? instructor.name : "Giảng viên EduMind",
+    instructorTitle: instructor ? instructor.title : undefined,
     categoryName: category ? category.name : "Khóa học",
     studentCount: 0,
     lessonCount: payload.chapters?.reduce((acc, chap) => acc + (chap.lessons?.length || 0), 0) || 0,
@@ -275,6 +283,7 @@ export async function mockUpdateCourse(
     ...mockCoursesData[index],
     ...payload,
     instructorName: instructor ? instructor.name : mockCoursesData[index].instructorName,
+    instructorTitle: instructor ? instructor.title : mockCoursesData[index].instructorTitle,
     categoryName: category ? category.name : mockCoursesData[index].categoryName,
     updatedAt: new Date().toISOString(),
   };

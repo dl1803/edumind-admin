@@ -39,6 +39,7 @@ export interface Course {
   categoryName?: string;
   instructorId: string;
   instructorName: string;
+  instructorTitle?: string;
   priceVnd: number;
   status: CourseStatus;
   studentCount: number;

@@ -9,4 +9,11 @@ describe("cn utility helper", () => {
   it("handles conditional class values correctly", () => {
     expect(cn("base-class", false && "ignored", "active-class")).toBe("base-class active-class");
   });
+
+  it("formats dates into DD/MM/YYYY string", () => {
+    const { formatDate } = require("../utils");
+    expect(formatDate("2026-08-01T08:00:00.000Z")).toMatch(/01\/08\/2026/);
+    expect(formatDate(undefined)).toBe("—");
+  });
 });
+
