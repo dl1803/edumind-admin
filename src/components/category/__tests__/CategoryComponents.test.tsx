@@ -116,6 +116,39 @@ describe("CategoryTable Component", () => {
     fireEvent.change(select, { target: { value: "5" } });
     expect(select).toHaveValue("5");
   });
+
+  it("tự động kẹp an toàn số trang (safePage) và không bị vượt biên khi danh sách thu nhỏ", () => {
+    const manyCategories: Category[] = Array.from({ length: 15 }, (_, i) => ({
+      id: `cat-${i + 1}`,
+      name: `Danh mục ${i + 1}`,
+      slug: `danh-muc-${i + 1}`,
+      courseCount: i,
+      status: "ACTIVE",
+      createdAt: "2026-08-01T08:00:00.000Z",
+    }));
+
+    const { rerender } = render(
+      <CategoryTable
+        categories={manyCategories}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+      />
+    );
+
+    const page2Btn = screen.getByRole("button", { name: "2" });
+    fireEvent.click(page2Btn);
+    expect(screen.getByText("11 - 15")).toBeInTheDocument();
+
+    rerender(
+      <CategoryTable
+        categories={mockCategories}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText("1 - 2")).toBeInTheDocument();
+  });
 });
 
 describe("CategoryFormModal Component", () => {

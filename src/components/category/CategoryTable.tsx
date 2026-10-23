@@ -50,12 +50,13 @@ export function CategoryTable({
     }
   }, [page, totalPages]);
 
-  const fromIndex = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const toIndex = Math.min(page * pageSize, total);
+  const safePage = Math.max(1, Math.min(page, totalPages));
+  const fromIndex = total === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const toIndex = Math.min(safePage * pageSize, total);
 
   const paginatedCategories = useMemo(() => {
-    return categories.slice((page - 1) * pageSize, page * pageSize);
-  }, [categories, page, pageSize]);
+    return categories.slice((safePage - 1) * pageSize, safePage * pageSize);
+  }, [categories, safePage, pageSize]);
 
   if (categories.length === 0) {
     return (

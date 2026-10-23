@@ -347,9 +347,9 @@ function CoursesContent() {
           <div className="flex items-center gap-3">
             <Link
               href="/categories"
-              className="px-4 py-2 border border-purple-200 text-purple-700 hover:bg-purple-50 rounded-lg text-sm font-medium transition flex items-center gap-2"
+              className="px-3.5 py-2 border border-purple-200 text-purple-700 hover:bg-purple-50 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs"
             >
-              <Folder size={16} />
+              <Folder size={14} weight="bold" />
               <span>Quản lý danh mục</span>
             </Link>
             <Link
