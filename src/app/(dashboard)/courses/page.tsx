@@ -346,7 +346,7 @@ function CoursesContent() {
         actions={
           <div className="flex items-center gap-3">
             <Link
-              href="/courses/categories"
+              href="/categories"
               className="px-4 py-2 border border-purple-200 text-purple-700 hover:bg-purple-50 rounded-lg text-sm font-medium transition flex items-center gap-2"
             >
               <Folder size={16} />
@@ -530,9 +530,9 @@ function CoursesContent() {
         sort={
           params.sortBy
             ? {
-                key: params.sortBy,
-                direction: params.sortDir || "asc",
-              }
+              key: params.sortBy,
+              direction: params.sortDir || "asc",
+            }
             : null
         }
         onSortChange={(sort) => {

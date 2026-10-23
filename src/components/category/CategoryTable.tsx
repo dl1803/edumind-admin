@@ -23,6 +23,8 @@ interface CategoryTableProps {
   sortKey?: CategorySortKey;
   sortDir?: CategorySortDirection;
   onSort?: (key: CategorySortKey) => void;
+  isSearching?: boolean;
+  onResetSearch?: () => void;
 }
 
 export function CategoryTable({
@@ -33,6 +35,8 @@ export function CategoryTable({
   sortKey,
   sortDir,
   onSort,
+  isSearching = false,
+  onResetSearch,
 }: CategoryTableProps) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -56,10 +60,23 @@ export function CategoryTable({
   if (categories.length === 0) {
     return (
       <div className="bg-white rounded-2xl shadow-xs border border-neutral-100 p-12 text-center space-y-2">
-        <p className="text-sm font-semibold text-neutral-800">Chưa có danh mục nào</p>
-        <p className="text-xs text-neutral-400">
-          Hãy bấm vào nút &quot;Thêm danh mục&quot; ở trên để tạo danh mục đầu tiên cho hệ thống.
+        <p className="text-sm font-semibold text-neutral-800">
+          {isSearching ? "Không tìm thấy danh mục nào phù hợp" : "Chưa có danh mục nào"}
         </p>
+        <p className="text-xs text-neutral-400 max-w-sm mx-auto">
+          {isSearching
+            ? "Không có kết quả nào khớp với từ khóa tìm kiếm của bạn. Hãy thử tìm với từ khóa khác."
+            : "Hãy bấm vào nút \"Thêm danh mục\" ở trên để tạo danh mục đầu tiên cho hệ thống."}
+        </p>
+        {isSearching && onResetSearch && (
+          <button
+            type="button"
+            onClick={onResetSearch}
+            className="mt-2 px-3.5 py-1.5 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-xl transition cursor-pointer"
+          >
+            Xóa tìm kiếm
+          </button>
+        )}
       </div>
     );
   }

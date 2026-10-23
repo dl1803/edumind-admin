@@ -75,6 +75,25 @@ describe("CategoryTable Component", () => {
     expect(screen.getByText("Chưa có danh mục nào")).toBeInTheDocument();
   });
 
+  it("hiển thị thông báo không tìm thấy phù hợp khi đang tìm kiếm", () => {
+    const handleReset = jest.fn();
+    render(
+      <CategoryTable
+        categories={[]}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+        isSearching={true}
+        onResetSearch={handleReset}
+      />
+    );
+
+    expect(screen.getByText("Không tìm thấy danh mục nào phù hợp")).toBeInTheDocument();
+    const resetBtn = screen.getByRole("button", { name: "Xóa tìm kiếm" });
+    expect(resetBtn).toBeInTheDocument();
+    fireEvent.click(resetBtn);
+    expect(handleReset).toHaveBeenCalledTimes(1);
+  });
+
   it("hiển thị footer phân trang động với số lượng và dropdown chọn dòng", () => {
     render(
       <CategoryTable

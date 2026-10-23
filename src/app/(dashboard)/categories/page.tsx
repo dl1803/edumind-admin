@@ -198,6 +198,8 @@ export default function CategoriesPage() {
           sortKey={sortKey}
           sortDir={sortDir}
           onSort={handleSortChange}
+          isSearching={Boolean(searchTerm.trim())}
+          onResetSearch={() => setSearchTerm("")}
         />
       )}
 
