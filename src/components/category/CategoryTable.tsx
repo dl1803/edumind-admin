@@ -1,14 +1,28 @@
 "use client";
 
-import React from "react";
-import { PencilSimple, Trash } from "@phosphor-icons/react";
+import React, { useState, useMemo, useEffect } from "react";
+import {
+  PencilSimple,
+  Trash,
+  CaretUp,
+  CaretDown,
+  CaretUpDown,
+} from "@phosphor-icons/react";
 import { Category } from "@/types/category.types";
+import { formatDate } from "@/lib/utils";
+import { Pagination } from "@/components/ui/Pagination";
+
+export type CategorySortKey = "name" | "courseCount" | "createdAt";
+export type CategorySortDirection = "asc" | "desc";
 
 interface CategoryTableProps {
   categories: Category[];
   onEdit: (category: Category) => void;
   onDelete: (category: Category) => void;
   isLoading?: boolean;
+  sortKey?: CategorySortKey;
+  sortDir?: CategorySortDirection;
+  onSort?: (key: CategorySortKey) => void;
 }
 
 export function CategoryTable({
@@ -16,7 +30,29 @@ export function CategoryTable({
   onEdit,
   onDelete,
   isLoading = false,
+  sortKey,
+  sortDir,
+  onSort,
 }: CategoryTableProps) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const total = categories.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(1);
+    }
+  }, [page, totalPages]);
+
+  const fromIndex = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const toIndex = Math.min(page * pageSize, total);
+
+  const paginatedCategories = useMemo(() => {
+    return categories.slice((page - 1) * pageSize, page * pageSize);
+  }, [categories, page, pageSize]);
+
   if (categories.length === 0) {
     return (
       <div className="bg-white rounded-2xl shadow-xs border border-neutral-100 p-12 text-center space-y-2">
@@ -28,20 +64,73 @@ export function CategoryTable({
     );
   }
 
+  const renderSortIcon = (key: CategorySortKey) => {
+    if (sortKey !== key) {
+      return (
+        <CaretUpDown
+          size={13}
+          className="text-neutral-400 opacity-60 group-hover/th:opacity-100 transition"
+        />
+      );
+    }
+    return sortDir === "asc" ? (
+      <CaretUp size={13} weight="bold" className="text-purple-600" />
+    ) : (
+      <CaretDown size={13} weight="bold" className="text-purple-600" />
+    );
+  };
+
   return (
     <div className="bg-white rounded-2xl shadow-xs border border-neutral-100 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[760px]">
           <thead>
             <tr className="bg-purple-50/40 text-[11px] font-bold text-neutral-600 uppercase tracking-wider border-b border-purple-100/80 whitespace-nowrap">
-              <th className="py-3.5 px-6 min-w-[280px] text-left">Tên danh mục</th>
-              <th className="py-3.5 px-6 w-44 min-w-[140px] text-center">Số khóa học</th>
-              <th className="py-3.5 px-6 w-44 min-w-[140px] text-center">Trạng thái</th>
+              {/* Tên danh mục */}
+              <th className="py-3.5 px-6 min-w-[280px] text-left">
+                <button
+                  type="button"
+                  onClick={() => onSort?.("name")}
+                  className="group/th inline-flex items-center gap-1.5 font-bold uppercase cursor-pointer hover:text-purple-700 transition"
+                  title="Sắp xếp theo tên danh mục"
+                >
+                  <span>Tên danh mục</span>
+                  {renderSortIcon("name")}
+                </button>
+              </th>
+
+              {/* Số khóa học */}
+              <th className="py-3.5 px-6 w-44 min-w-[140px] text-center">
+                <button
+                  type="button"
+                  onClick={() => onSort?.("courseCount")}
+                  className="group/th inline-flex items-center justify-center gap-1.5 font-bold uppercase cursor-pointer hover:text-purple-700 transition"
+                  title="Sắp xếp theo số khóa học"
+                >
+                  <span>Số khóa học</span>
+                  {renderSortIcon("courseCount")}
+                </button>
+              </th>
+
+              {/* Ngày tạo */}
+              <th className="py-3.5 px-6 w-44 min-w-[140px] text-center">
+                <button
+                  type="button"
+                  onClick={() => onSort?.("createdAt")}
+                  className="group/th inline-flex items-center justify-center gap-1.5 font-bold uppercase cursor-pointer hover:text-purple-700 transition"
+                  title="Sắp xếp theo ngày tạo"
+                >
+                  <span>Ngày tạo</span>
+                  {renderSortIcon("createdAt")}
+                </button>
+              </th>
+
+              {/* Hành động */}
               <th className="py-3.5 px-6 w-36 min-w-[120px] text-center">Hành động</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100 text-xs text-neutral-800">
-            {categories.map((category) => (
+            {paginatedCategories.map((category) => (
               <tr
                 key={category.id}
                 className="hover:bg-purple-50/30 transition group"
@@ -62,7 +151,7 @@ export function CategoryTable({
                   </div>
                 </td>
 
-                {/* Số khóa học */}
+                {/* Số khóa học (Flat Text) */}
                 <td className="py-3.5 px-6 text-center font-sans tabular-nums text-neutral-700 text-xs font-medium whitespace-nowrap">
                   {category.courseCount > 0 ? (
                     <span>{category.courseCount} khóa học</span>
@@ -71,19 +160,9 @@ export function CategoryTable({
                   )}
                 </td>
 
-                {/* Trạng thái - Tuân thủ Zero-Pill Rule (Pure Flat Text kèm dot tròn) */}
-                <td className="py-3.5 px-6 text-center whitespace-nowrap">
-                  {category.status === "ACTIVE" ? (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      Hoạt động
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-400">
-                      <span className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
-                      Tạm ẩn
-                    </span>
-                  )}
+                {/* Ngày tạo */}
+                <td className="py-3.5 px-6 text-center font-sans tabular-nums text-neutral-600 text-xs whitespace-nowrap">
+                  {formatDate(category.createdAt)}
                 </td>
 
                 {/* Thao tác Sửa / Xóa */}
@@ -113,6 +192,47 @@ export function CategoryTable({
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Table Footer with dynamic pagination */}
+      <div className="p-4 border-t border-purple-100 bg-white flex flex-wrap items-center justify-between gap-4 text-xs text-neutral-500">
+        <div className="flex items-center gap-3">
+          <span>
+            Hiển thị{" "}
+            <strong className="text-neutral-800 font-bold tabular-nums">
+              {fromIndex} - {toIndex}
+            </strong>{" "}
+            trong tổng số{" "}
+            <strong className="text-neutral-800 font-bold tabular-nums">
+              {total}
+            </strong>{" "}
+            danh mục
+          </span>
+
+          <div className="flex items-center gap-1.5 ml-2">
+            <span>Dòng:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="py-1 px-2 text-xs bg-white border border-neutral-200 rounded text-neutral-700 font-medium focus:outline-none focus:border-purple-600 cursor-pointer"
+            >
+              {[5, 10, 20].map((sz) => (
+                <option key={sz} value={sz}>
+                  {sz}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <Pagination
+          page={page}
+          pageCount={totalPages}
+          onPageChange={setPage}
+        />
       </div>
     </div>
   );

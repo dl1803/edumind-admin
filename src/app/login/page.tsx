@@ -35,7 +35,7 @@ function LoginFormContent() {
     resolver: zodResolver(loginSchema),
     mode: 'onBlur',
     defaultValues: {
-      email: 'admin@elearning.com',
+      email: 'admin@edumind.edu.vn',
       password: '',
       rememberMe: true,
     },

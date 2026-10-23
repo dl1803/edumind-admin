@@ -42,6 +42,24 @@ describe("categoryService", () => {
     expect(updated.slug).toBe("thiet-ke-ui-ux-chuyen-sau");
   });
 
+  it("từ chối tạo danh mục có tên hoặc slug đã tồn tại", async () => {
+    await expect(
+      categoryService.createCategory({
+        name: "Lập trình Python", // Đã có trong mock
+        slug: "lap-trinh-python-moi",
+        status: "ACTIVE",
+      })
+    ).rejects.toThrow("Tên danh mục đã tồn tại trong hệ thống");
+
+    await expect(
+      categoryService.createCategory({
+        name: "Tên chưa có",
+        slug: "lap-trinh-python", // Slug đã có trong mock
+        status: "ACTIVE",
+      })
+    ).rejects.toThrow("Đường dẫn (slug) đã tồn tại trong hệ thống");
+  });
+
   it("báo lỗi khi cập nhật danh mục không tồn tại", async () => {
     await expect(
       categoryService.updateCategory("non-existent-id", {

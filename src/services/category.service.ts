@@ -8,6 +8,7 @@ const INITIAL_CATEGORIES: Category[] = [
     description: "Các khóa học lập trình Python từ căn bản đến nâng cao",
     courseCount: 8,
     status: "ACTIVE",
+    createdAt: "2026-08-01T08:00:00.000Z",
   },
   {
     id: "cat-2",
@@ -16,6 +17,7 @@ const INITIAL_CATEGORIES: Category[] = [
     description: "Machine Learning, Deep Learning và Trí tuệ nhân tạo",
     courseCount: 5,
     status: "ACTIVE",
+    createdAt: "2026-08-02T09:00:00.000Z",
   },
   {
     id: "cat-3",
@@ -24,6 +26,7 @@ const INITIAL_CATEGORIES: Category[] = [
     description: "Frontend React, Next.js, Backend Node.js và Spring Boot",
     courseCount: 12,
     status: "ACTIVE",
+    createdAt: "2026-08-05T10:00:00.000Z",
   },
   {
     id: "cat-4",
@@ -32,6 +35,7 @@ const INITIAL_CATEGORIES: Category[] = [
     description: "Figma, Design System và thiết kế trải nghiệm người dùng",
     courseCount: 0,
     status: "ACTIVE",
+    createdAt: "2026-08-10T11:00:00.000Z",
   },
 ];
 
@@ -47,6 +51,22 @@ export const categoryService = {
 
   async createCategory(values: CategoryFormValues): Promise<Category> {
     await delay(100);
+    const trimmedName = values.name.trim().toLowerCase();
+    const isDuplicate = mockCategories.some(
+      (c) => c.name.trim().toLowerCase() === trimmedName
+    );
+    if (isDuplicate) {
+      throw new Error("Tên danh mục đã tồn tại trong hệ thống");
+    }
+
+    const trimmedSlug = values.slug.trim().toLowerCase();
+    const isSlugDuplicate = mockCategories.some(
+      (c) => c.slug.trim().toLowerCase() === trimmedSlug
+    );
+    if (isSlugDuplicate) {
+      throw new Error("Đường dẫn (slug) đã tồn tại trong hệ thống");
+    }
+
     const newCat: Category = {
       ...values,
       id: `cat-${Date.now()}`,
@@ -61,6 +81,23 @@ export const categoryService = {
     await delay(100);
     const index = mockCategories.findIndex((c) => c.id === id);
     if (index === -1) throw new Error("Không tìm thấy danh mục để cập nhật");
+
+    const trimmedName = values.name.trim().toLowerCase();
+    const isDuplicate = mockCategories.some(
+      (c) => c.id !== id && c.name.trim().toLowerCase() === trimmedName
+    );
+    if (isDuplicate) {
+      throw new Error("Tên danh mục đã tồn tại trong hệ thống");
+    }
+
+    const trimmedSlug = values.slug.trim().toLowerCase();
+    const isSlugDuplicate = mockCategories.some(
+      (c) => c.id !== id && c.slug.trim().toLowerCase() === trimmedSlug
+    );
+    if (isSlugDuplicate) {
+      throw new Error("Đường dẫn (slug) đã tồn tại trong hệ thống");
+    }
+
     const updated: Category = {
       ...mockCategories[index],
       ...values,

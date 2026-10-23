@@ -73,6 +73,15 @@ export function CategoryFormModal({
     }
   }, [initialData, reset, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setValue("name", val, { shouldValidate: true });
@@ -84,7 +93,12 @@ export function CategoryFormModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-neutral-950/40 backdrop-blur-[2px] flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 bg-neutral-950/40 backdrop-blur-[2px] flex items-center justify-center p-4 z-50 animate-in fade-in duration-150"
+    >
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-neutral-100 p-6 mx-4 animate-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-neutral-100">

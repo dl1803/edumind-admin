@@ -32,6 +32,42 @@ describe("categoryFormSchema", () => {
     }
   });
 
+  it("từ chối khi tên để trống", () => {
+    const result = categoryFormSchema.safeParse({
+      name: "",
+      slug: "valid-slug",
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe("Tên danh mục không được để trống");
+    }
+  });
+
+  it("từ chối khi slug để trống", () => {
+    const result = categoryFormSchema.safeParse({
+      name: "Tên hợp lệ",
+      slug: "",
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe("Slug đường dẫn không được để trống");
+    }
+  });
+
+  it("từ chối khi slug quá ngắn (< 2 ký tự)", () => {
+    const result = categoryFormSchema.safeParse({
+      name: "Tên hợp lệ",
+      slug: "a",
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toContain("ít nhất 2 ký tự");
+    }
+  });
+
   it("từ chối khi tên quá ngắn (< 2 ký tự)", () => {
     const result = categoryFormSchema.safeParse({
       name: "A",
@@ -44,15 +80,15 @@ describe("categoryFormSchema", () => {
     }
   });
 
-  it("từ chối khi tên quá dài (> 50 ký tự)", () => {
+  it("từ chối khi tên quá dài (> 100 ký tự)", () => {
     const result = categoryFormSchema.safeParse({
-      name: "A".repeat(51),
+      name: "A".repeat(101),
       slug: "valid-slug",
     });
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0].message).toContain("không vượt quá 50 ký tự");
+      expect(result.error.issues[0].message).toContain("không vượt quá 100 ký tự");
     }
   });
 
@@ -70,16 +106,16 @@ describe("categoryFormSchema", () => {
     expect(invalidSlugSpecial.success).toBe(false);
   });
 
-  it("từ chối mô tả vượt quá 200 ký tự", () => {
+  it("từ chối mô tả vượt quá 500 ký tự", () => {
     const result = categoryFormSchema.safeParse({
       name: "Thiết kế đồ họa",
       slug: "thiet-ke-do-hoa",
-      description: "X".repeat(201),
+      description: "X".repeat(501),
     });
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0].message).toContain("tối đa 200 ký tự");
+      expect(result.error.issues[0].message).toContain("tối đa 500 ký tự");
     }
   });
 });

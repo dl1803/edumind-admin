@@ -13,6 +13,7 @@ const mockCategories: Category[] = [
     description: "Khóa học Python căn bản",
     courseCount: 12,
     status: "ACTIVE",
+    createdAt: "2026-08-01T08:00:00.000Z",
   },
   {
     id: "cat-2",
@@ -21,11 +22,12 @@ const mockCategories: Category[] = [
     description: "Figma và Design System",
     courseCount: 0,
     status: "INACTIVE",
+    createdAt: "2026-08-10T10:00:00.000Z",
   },
 ];
 
 describe("CategoryTable Component", () => {
-  it("render danh sách danh mục với các cột dữ liệu và trạng thái Zero-Pill", () => {
+  it("render danh sách danh mục với các cột dữ liệu và ngày tạo", () => {
     const handleEdit = jest.fn();
     const handleDelete = jest.fn();
 
@@ -39,11 +41,11 @@ describe("CategoryTable Component", () => {
 
     expect(screen.getByText("Lập trình Python")).toBeInTheDocument();
     expect(screen.getByText("12 khóa học")).toBeInTheDocument();
-    expect(screen.getByText("Hoạt động")).toBeInTheDocument();
+    expect(screen.getByText("01/08/2026")).toBeInTheDocument();
 
     expect(screen.getByText("Thiết kế UI/UX")).toBeInTheDocument();
     expect(screen.getByText("0 khóa học")).toBeInTheDocument();
-    expect(screen.getByText("Tạm ẩn")).toBeInTheDocument();
+    expect(screen.getByText("10/08/2026")).toBeInTheDocument();
   });
 
   it("gọi onEdit và onDelete khi tương tác nút bấm", () => {
@@ -71,6 +73,29 @@ describe("CategoryTable Component", () => {
     render(<CategoryTable categories={[]} onEdit={jest.fn()} onDelete={jest.fn()} />);
 
     expect(screen.getByText("Chưa có danh mục nào")).toBeInTheDocument();
+  });
+
+  it("hiển thị footer phân trang động với số lượng và dropdown chọn dòng", () => {
+    render(
+      <CategoryTable
+        categories={mockCategories}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText(/Hiển thị/i)).toBeInTheDocument();
+    expect(screen.getByText("1 - 2")).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText(/trong tổng số/i)).toBeInTheDocument();
+    expect(screen.getByText("Dòng:")).toBeInTheDocument();
+
+    const select = screen.getByRole("combobox");
+    expect(select).toBeInTheDocument();
+    expect(select).toHaveValue("10");
+
+    fireEvent.change(select, { target: { value: "5" } });
+    expect(select).toHaveValue("5");
   });
 });
 
@@ -131,6 +156,20 @@ describe("CategoryFormModal Component", () => {
     fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
     expect(handleClose).toHaveBeenCalledTimes(2);
   });
+
+  it("gọi onClose khi nhấn phím Escape", () => {
+    const handleClose = jest.fn();
+    render(
+      <CategoryFormModal
+        isOpen={true}
+        onClose={handleClose}
+        onSubmit={jest.fn()}
+      />
+    );
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("DeleteCategoryModal Component", () => {
@@ -183,5 +222,20 @@ describe("DeleteCategoryModal Component", () => {
     const deleteBtn = screen.getByRole("button", { name: "Xóa vĩnh viễn" });
     fireEvent.click(deleteBtn);
     expect(handleConfirm).toHaveBeenCalledWith(mockCategories[1]);
+  });
+
+  it("gọi onClose khi nhấn phím Escape trên DeleteCategoryModal", () => {
+    const handleClose = jest.fn();
+    render(
+      <DeleteCategoryModal
+        isOpen={true}
+        category={mockCategories[1]}
+        onClose={handleClose}
+        onConfirm={jest.fn()}
+      />
+    );
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(handleClose).toHaveBeenCalledTimes(1);
   });
 });

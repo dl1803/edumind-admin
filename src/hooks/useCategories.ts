@@ -11,19 +11,35 @@ export function useCategoriesList() {
   });
 }
 
-export function useSaveCategory(categoryId?: string) {
+export type SaveCategoryPayload =
+  | CategoryFormValues
+  | { id?: string; values: CategoryFormValues };
+
+export function useSaveCategory(defaultCategoryId?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (values: CategoryFormValues) => {
-      if (categoryId) return await categoryService.updateCategory(categoryId, values);
+    mutationFn: async (payload: SaveCategoryPayload) => {
+      const isObjectPayload = "values" in payload;
+      const targetId = isObjectPayload ? payload.id : defaultCategoryId;
+      const values = isObjectPayload ? payload.values : payload;
+
+      if (targetId) {
+        return await categoryService.updateCategory(targetId, values);
+      }
       return await categoryService.createCategory(values);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      const isObjectPayload =
+        typeof variables === "object" && variables !== null && "values" in variables;
+      const targetId = isObjectPayload
+        ? (variables as { id?: string }).id
+        : defaultCategoryId;
+
       queryClient.invalidateQueries({ queryKey: ["categories-list"] });
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success(
-        categoryId
+        targetId
           ? "Đã cập nhật danh mục thành công!"
           : "Đã tạo danh mục mới thành công!"
       );
