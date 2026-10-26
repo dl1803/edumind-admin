@@ -183,7 +183,7 @@ describe("Course Detail UI Components (A-05)", () => {
       );
 
       expect(screen.getByText("Chi tiết Bài học")).toBeInTheDocument();
-      expect(screen.getByText("pgvector Ready")).toBeInTheDocument();
+      expect(screen.getByText("Đã đồng bộ AI")).toBeInTheDocument();
       expect(screen.getByText("python_intro_final.mp4")).toBeInTheDocument();
 
       const closeBtn = screen.getByText("Đóng");
@@ -201,7 +201,7 @@ describe("Course Detail UI Components (A-05)", () => {
         screen.getByText("Đã tạo tối thiểu 01 chương và có nội dung bài học")
       ).toBeInTheDocument();
       expect(
-        screen.getByText("100% video bài giảng đã bóc băng Whisper STT và nhúng Vector pgvector")
+        screen.getByText("100% video bài giảng đã tạo phụ đề và đồng bộ Trợ giảng AI")
       ).toBeInTheDocument();
       expect(
         screen.getByText("Đã thiết lập giảng viên phụ trách và cấu hình giá bán")

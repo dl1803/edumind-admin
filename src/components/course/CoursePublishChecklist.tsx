@@ -84,10 +84,10 @@ export function CoursePublishChecklist({
               )}
               <div className="space-y-1 min-w-0">
                 <h4 className="text-xs font-bold text-neutral-900 leading-snug">
-                  100% video bài giảng đã bóc băng Whisper STT và nhúng Vector pgvector
+                  100% video bài giảng đã tạo phụ đề và đồng bộ Trợ giảng AI
                 </h4>
                 <p className="text-xs text-neutral-500 leading-relaxed">
-                  Toàn bộ video đã hoàn tất pipeline xử lý HLS, phụ đề Whisper STT và nạp vector embeddings vào pgvector sẵn sàng cho AI Trợ giảng RAG.
+                  Toàn bộ video bài học đã hoàn tất tạo phụ đề tự động và nạp dữ liệu tri thức sẵn sàng cho Trợ giảng AI hỗ trợ học viên.
                 </p>
               </div>
             </div>

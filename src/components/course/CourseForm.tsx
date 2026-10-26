@@ -26,6 +26,7 @@ import {
   TreeStructure,
   CircleNotch,
 } from "@phosphor-icons/react";
+import { SelectDropdown } from "@/components/ui/SelectDropdown";
 
 export interface CourseFormRef {
   requestCancel: () => boolean;
@@ -329,17 +330,17 @@ export const CourseForm = forwardRef<CourseFormRef, CourseFormProps>(function Co
                 <label className="text-xs font-bold text-neutral-800 block mb-1.5">
                   Danh mục <span className="text-red-500">*</span>
                 </label>
-                <select
-                  {...register("categoryId")}
-                  className="w-full px-3 py-2 text-xs bg-neutral-50 border border-neutral-200 rounded-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-500/20 text-neutral-800 transition font-medium"
-                >
-                  <option value="">-- Chọn danh mục khóa học --</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                <SelectDropdown
+                  value={watch("categoryId") || ""}
+                  options={categories.map((c) => ({ label: c.name, value: c.id }))}
+                  placeholder="-- Chọn danh mục khóa học --"
+                  onChange={(val) =>
+                    setValue("categoryId", val, { shouldDirty: true, shouldValidate: true })
+                  }
+                  error={!!errors.categoryId}
+                  fullWidth
+                  size="lg"
+                />
                 {errors.categoryId && (
                   <p className="text-[11px] text-red-500 font-medium mt-1">{errors.categoryId.message}</p>
                 )}
@@ -356,17 +357,20 @@ export const CourseForm = forwardRef<CourseFormRef, CourseFormProps>(function Co
                 <label className="text-xs font-bold text-neutral-800 block mb-1.5">
                   Chọn giảng viên <span className="text-red-500">*</span>
                 </label>
-                <select
-                  {...register("instructorId")}
-                  className="w-full px-3 py-2 text-xs bg-neutral-50 border border-neutral-200 rounded-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-500/20 text-neutral-800 transition font-medium"
-                >
-                  <option value="">-- Chọn giảng viên từ danh sách --</option>
-                  {instructors.map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.name} — {i.title}
-                    </option>
-                  ))}
-                </select>
+                <SelectDropdown
+                  value={watch("instructorId") || ""}
+                  options={instructors.map((i) => ({
+                    label: `${i.name} — ${i.title}`,
+                    value: i.id,
+                  }))}
+                  placeholder="-- Chọn giảng viên từ danh sách --"
+                  onChange={(val) =>
+                    setValue("instructorId", val, { shouldDirty: true, shouldValidate: true })
+                  }
+                  error={!!errors.instructorId}
+                  fullWidth
+                  size="lg"
+                />
                 <p className="text-[10px] text-neutral-400 mt-1.5">
                   Mỗi khóa học do 1 Giảng viên chính chịu trách nhiệm nội dung chuyên môn.
                 </p>
@@ -407,19 +411,23 @@ export const CourseForm = forwardRef<CourseFormRef, CourseFormProps>(function Co
                 <label className="text-xs font-bold text-neutral-800 block mb-1.5">
                   {!isEditMode ? "Trạng thái ban đầu *" : "Trạng thái xuất bản *"}
                 </label>
-                <select
-                  {...register("status")}
+                <SelectDropdown
+                  value={watch("status") || "DRAFT"}
+                  options={[
+                    { label: "Bản nháp (Đang soạn thảo)", value: "DRAFT" },
+                    { label: "Công khai (Đã xuất bản)", value: "PUBLISHED" },
+                    { label: "Lưu trữ / Ẩn", value: "ARCHIVED" },
+                  ]}
+                  onChange={(val) =>
+                    setValue("status", val as "DRAFT" | "PUBLISHED" | "ARCHIVED", {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
                   disabled={!isEditMode}
-                  className={`w-full px-3 py-2 text-xs border rounded-lg focus:outline-none focus:ring-2 font-semibold text-neutral-800 transition ${
-                    !isEditMode
-                      ? "bg-slate-100 text-slate-500 border-neutral-200 cursor-not-allowed"
-                      : "bg-neutral-50 border-neutral-200 focus:border-purple-600 focus:ring-purple-500/20"
-                  }`}
-                >
-                  <option value="DRAFT">Bản nháp (Đang soạn thảo)</option>
-                  <option value="PUBLISHED">Công khai (Đã xuất bản)</option>
-                  <option value="ARCHIVED">Lưu trữ / Ẩn</option>
-                </select>
+                  fullWidth
+                  size="lg"
+                />
 
                 {!isEditMode ? (
                   <p className="text-[11px] text-neutral-400 mt-1.5 leading-relaxed">

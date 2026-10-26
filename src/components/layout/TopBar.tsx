@@ -91,8 +91,8 @@ export function TopBar() {
           </button>
 
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-purple-100 py-1.5 z-30 animate-fade-in">
-              <div className="px-4 py-2 border-b border-neutral-100">
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-purple-100 p-1.5 z-30 animate-fade-in">
+              <div className="px-3 py-2 mb-1 border-b border-neutral-100">
                 <p className="text-xs font-bold text-neutral-900">Trần Quản Trị</p>
                 <p className="text-[10px] text-neutral-500 font-mono">admin@edumind.vn</p>
               </div>
@@ -103,7 +103,7 @@ export function TopBar() {
                   setDropdownOpen(false);
                   router.push('/settings');
                 }}
-                className="w-full text-left px-4 py-2 text-xs text-neutral-700 hover:bg-purple-50 flex items-center gap-2 transition"
+                className="w-full text-left px-3 py-2 text-xs text-neutral-700 hover:bg-purple-50/80 hover:text-purple-700 rounded-lg flex items-center gap-2 transition"
               >
                 <User size={16} />
                 <span>Cài đặt tài khoản</span>
@@ -112,7 +112,7 @@ export function TopBar() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 transition"
+                className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 transition"
               >
                 <SignOut size={16} />
                 <span>Đăng xuất</span>

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { CategorySortKey, CategorySortDirection } from "./CategoryTable";
+import { SelectDropdown } from "@/components/ui/SelectDropdown";
 
 export interface SortOption {
   key: CategorySortKey;
@@ -32,24 +33,21 @@ export function CategorySortDropdown({
   return (
     <div className="flex items-center gap-2 text-xs font-medium select-none">
       <span className="text-neutral-500">Sắp xếp:</span>
-      <select
+      <SelectDropdown
+        title="Công cụ sắp xếp danh mục"
         value={`${sortKey}-${sortDir}`}
-        onChange={(e) => {
-          const [key, dir] = e.target.value.split("-") as [
+        options={SORT_OPTIONS.map((opt) => ({
+          label: opt.label,
+          value: `${opt.key}-${opt.dir}`,
+        }))}
+        onChange={(val) => {
+          const [key, dir] = val.split("-") as [
             CategorySortKey,
             CategorySortDirection
           ];
           onSelect(key, dir);
         }}
-        title="Công cụ sắp xếp danh mục"
-        className="py-1.5 px-3 text-xs bg-neutral-50 hover:bg-white border border-neutral-200 rounded-xl text-neutral-800 font-medium focus:outline-none focus:border-purple-600 cursor-pointer transition shadow-2xs"
-      >
-        {SORT_OPTIONS.map((opt) => (
-          <option key={`${opt.key}-${opt.dir}`} value={`${opt.key}-${opt.dir}`}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+      />
     </div>
   );
 }

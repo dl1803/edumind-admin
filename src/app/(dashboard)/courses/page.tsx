@@ -26,6 +26,7 @@ import { Modal } from "@/components/ui/Modal";
 import { StatusText } from "@/components/ui/StatusText";
 import { DataTable } from "@/components/data-table/DataTable";
 import { DataTableColumn } from "@/components/data-table/types";
+import { SelectDropdown } from "@/components/ui/SelectDropdown";
 import { Course, CourseListParams } from "@/types/course.types";
 import { courseService } from "@/services/course.service";
 import { useCourses, useDeleteCourse, useUpdateCourse } from "@/hooks/useCourses";
@@ -497,23 +498,23 @@ function CoursesContent() {
         toolbar={
           <div className="flex items-center gap-2 text-xs text-neutral-500 font-medium">
             <span>Sắp xếp:</span>
-            <select
+            <SelectDropdown
               value={`${params.sortBy || "createdAt"}_${params.sortDir || "desc"}`}
-              onChange={(e) => {
-                const [field, dir] = e.target.value.split("_");
+              options={[
+                { label: "Mới tạo nhất", value: "createdAt_desc" },
+                { label: "Học viên đông nhất", value: "studentCount_desc" },
+                { label: "Giá cao đến thấp", value: "priceVnd_desc" },
+                { label: "Giá thấp đến cao", value: "priceVnd_asc" },
+              ]}
+              onChange={(val) => {
+                const [field, dir] = val.split("_");
                 updateParams((prev) => ({
                   ...prev,
                   sortBy: field,
                   sortDir: dir as "asc" | "desc",
                 }));
               }}
-              className="py-1.5 px-2.5 text-xs bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-800 font-medium focus:outline-none focus:border-purple-600 cursor-pointer"
-            >
-              <option value="createdAt_desc">Mới tạo nhất</option>
-              <option value="studentCount_desc">Học viên đông nhất</option>
-              <option value="priceVnd_desc">Giá cao đến thấp</option>
-              <option value="priceVnd_asc">Giá thấp đến cao</option>
-            </select>
+            />
           </div>
         }
         pageSizeOptions={[5, 10, 20, 50]}
