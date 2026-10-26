@@ -21,13 +21,44 @@ function isMockEnabled(): boolean {
   return process.env.NEXT_PUBLIC_USE_MOCK === "true";
 }
 
+interface BackendPaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
 export const courseService = {
   async getCourses(params?: CourseListParams): Promise<PaginatedResponse<Course>> {
     if (isMockEnabled()) {
       return mockGetCourses(params);
     }
-    const response = await apiClient.get<PaginatedResponse<Course>>("/courses", { params });
-    return response.data;
+
+    const queryParams: Record<string, unknown> = {};
+    if (params?.page) queryParams.page = params.page;
+    if (params?.pageSize) queryParams.page_size = params.pageSize;
+    if (params?.search) queryParams.search = params.search;
+    if (params?.status) queryParams.status = params.status.toLowerCase();
+    if (params?.categoryId) queryParams.category_id = params.categoryId;
+    if (params?.sortBy) queryParams.sort_by = params.sortBy;
+
+    const response = await apiClient.get<BackendPaginatedResponse<Course> | PaginatedResponse<Course>>(
+      "/courses",
+      { params: queryParams }
+    );
+
+    const resData = response.data;
+    if ("data" in resData && Array.isArray(resData.data)) {
+      return {
+        items: resData.data,
+        total: resData.total,
+        page: resData.page,
+        pageSize: resData.page_size,
+        totalPages: resData.total_pages,
+      };
+    }
+    return resData as PaginatedResponse<Course>;
   },
 
   async getCourseById(id: string): Promise<Course> {
@@ -42,7 +73,7 @@ export const courseService = {
     if (isMockEnabled()) {
       return mockCreateCourse(payload);
     }
-    const response = await apiClient.post<Course>("/courses", payload);
+    const response = await apiClient.post<Course>("/admin/courses", payload);
     return response.data;
   },
 
@@ -50,7 +81,7 @@ export const courseService = {
     if (isMockEnabled()) {
       return mockUpdateCourse(id, payload);
     }
-    const response = await apiClient.put<Course>(`/courses/${id}`, payload);
+    const response = await apiClient.put<Course>(`/admin/courses/${id}`, payload);
     return response.data;
   },
 
@@ -58,7 +89,7 @@ export const courseService = {
     if (isMockEnabled()) {
       return mockDeleteCourse(id);
     }
-    const response = await apiClient.delete<{ success: boolean }>(`/courses/${id}`);
+    const response = await apiClient.delete<{ success: boolean }>(`/admin/courses/${id}`);
     return response.data;
   },
 
@@ -66,15 +97,21 @@ export const courseService = {
     if (isMockEnabled()) {
       return MOCK_CATEGORIES;
     }
-    const response = await apiClient.get<Category[]>("/categories");
-    return response.data;
+    const response = await apiClient.get<{ data: Category[] } | Category[]>("/categories");
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data.data;
   },
 
   async getInstructors(): Promise<InstructorOption[]> {
     if (isMockEnabled()) {
       return MOCK_INSTRUCTORS;
     }
-    const response = await apiClient.get<InstructorOption[]>("/instructors/options");
-    return response.data;
+    const response = await apiClient.get<{ data: InstructorOption[] } | InstructorOption[]>("/instructors/options");
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data.data;
   },
 };
