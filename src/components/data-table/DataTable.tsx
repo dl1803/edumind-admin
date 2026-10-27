@@ -13,6 +13,7 @@ import { useDataTableState } from "./useDataTableState";
 import { DataTableEmpty } from "./DataTableEmpty";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Pagination } from "@/components/ui/Pagination";
+import { SelectDropdown } from "@/components/ui/SelectDropdown";
 import { cn } from "@/lib/utils";
 
 export function DataTable<T>({
@@ -99,20 +100,16 @@ export function DataTable<T>({
             )}
 
             {filters.map((filter) => (
-              <select
+              <SelectDropdown
                 key={filter.key}
                 value={state.filterValues[filter.key] || ""}
-                onChange={(e) => state.handleFilterChange(filter.key, e.target.value)}
+                options={[
+                  { label: filter.label, value: "" },
+                  ...filter.options,
+                ]}
+                onChange={(val) => state.handleFilterChange(filter.key, val)}
                 disabled={isLoading}
-                className="py-1.5 px-3 text-xs bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-700 font-medium focus:outline-none focus:border-purple-600 cursor-pointer disabled:opacity-50"
-              >
-                <option value="">{filter.label}</option>
-                {filter.options.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              />
             ))}
           </div>
 
@@ -294,24 +291,23 @@ export function DataTable<T>({
 
               <div className="flex items-center gap-1.5 ml-2">
                 <span>Dòng:</span>
-                <select
+                <SelectDropdown
                   value={currentPageSize}
-                  onChange={(e) => {
-                    const newSize = Number(e.target.value);
+                  options={pageSizeOptions.map((sz) => ({
+                    label: `${sz}`,
+                    value: `${sz}`,
+                  }))}
+                  onChange={(val) => {
+                    const newSize = Number(val);
                     if (mode === "server") {
                       onPageSizeChange?.(newSize);
                     } else {
                       state.handlePageSizeChange(newSize);
                     }
                   }}
-                  className="py-1 px-2 text-xs bg-white border border-neutral-200 rounded text-neutral-700 font-medium focus:outline-none focus:border-purple-600 cursor-pointer"
-                >
-                  {pageSizeOptions.map((sz) => (
-                    <option key={sz} value={sz}>
-                      {sz}
-                    </option>
-                  ))}
-                </select>
+                  size="sm"
+                  className="bg-white"
+                />
               </div>
             </div>
 

@@ -11,6 +11,7 @@ import {
 import { Category } from "@/types/category.types";
 import { formatDate } from "@/lib/utils";
 import { Pagination } from "@/components/ui/Pagination";
+import { SelectDropdown } from "@/components/ui/SelectDropdown";
 
 export type CategorySortKey = "name" | "courseCount" | "createdAt";
 export type CategorySortDirection = "asc" | "desc";
@@ -229,20 +230,19 @@ export function CategoryTable({
 
           <div className="flex items-center gap-1.5 ml-2">
             <span>Dòng:</span>
-            <select
+            <SelectDropdown
               value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
+              options={[5, 10, 20].map((sz) => ({
+                label: `${sz}`,
+                value: `${sz}`,
+              }))}
+              onChange={(val) => {
+                setPageSize(Number(val));
                 setPage(1);
               }}
-              className="py-1 px-2 text-xs bg-white border border-neutral-200 rounded text-neutral-700 font-medium focus:outline-none focus:border-purple-600 cursor-pointer"
-            >
-              {[5, 10, 20].map((sz) => (
-                <option key={sz} value={sz}>
-                  {sz}
-                </option>
-              ))}
-            </select>
+              size="sm"
+              className="bg-white"
+            />
           </div>
         </div>
 

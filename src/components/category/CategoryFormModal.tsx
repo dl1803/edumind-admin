@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Tag, X } from "@phosphor-icons/react";
 import { categoryFormSchema, CategoryFormSchemaType } from "@/lib/validations/category.schema";
 import { Category, CategoryFormValues } from "@/types/category.types";
+import { SelectDropdown } from "@/components/ui/SelectDropdown";
 
 interface CategoryFormModalProps {
   isOpen: boolean;
@@ -188,13 +189,21 @@ export function CategoryFormModal({
             <label className="block font-medium text-neutral-700 mb-1.5 text-xs">
               Trạng thái hoạt động
             </label>
-            <select
-              {...register("status")}
-              className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:border-purple-600 font-medium text-neutral-800 text-xs transition"
-            >
-              <option value="ACTIVE">Hoạt động (Hiển thị cho học viên)</option>
-              <option value="INACTIVE">Tạm ẩn (Không hiển thị)</option>
-            </select>
+            <SelectDropdown
+              value={watch("status") || "ACTIVE"}
+              options={[
+                { label: "Hoạt động (Hiển thị cho học viên)", value: "ACTIVE" },
+                { label: "Tạm ẩn (Không hiển thị)", value: "INACTIVE" },
+              ]}
+              onChange={(val) =>
+                setValue("status", val as "ACTIVE" | "INACTIVE", {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+              fullWidth
+              size="lg"
+            />
           </div>
 
           {/* Footer */}

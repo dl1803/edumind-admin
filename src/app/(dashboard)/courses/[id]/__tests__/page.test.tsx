@@ -190,7 +190,7 @@ describe("CourseDetailPage (A-05 Page Assembly)", () => {
 
     expect(screen.getByText("Điều kiện xuất bản khóa học")).toBeInTheDocument();
     expect(
-      screen.getByText("100% video bài giảng đã bóc băng Whisper STT và nhúng Vector pgvector")
+      screen.getByText("100% video bài giảng đã tạo phụ đề và đồng bộ Trợ giảng AI")
     ).toBeInTheDocument();
   });
 });

@@ -117,24 +117,24 @@ export function CourseLessonDrawer({
               </Link>
               <span className="px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 font-semibold flex items-center gap-1">
                 <Check size={12} weight="bold" />
-                <span>Whisper STT Hoàn tất</span>
+                <span>Phụ đề hoàn tất</span>
               </span>
             </div>
           </div>
 
-          {/* Dữ liệu AI RAG */}
+          {/* Dữ liệu AI Trợ giảng */}
           <div className="space-y-1.5 pt-2">
             <div className="flex items-center justify-between">
               <span className="font-bold text-neutral-900 flex items-center gap-1.5">
                 <Sparkle size={16} weight="fill" className="text-purple-600" />
-                <span>Dữ liệu AI Trợ giảng (RAG Ready)</span>
+                <span>Dữ liệu Trợ giảng AI</span>
               </span>
               <span className="text-[10px] font-mono bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-lg font-bold">
-                pgvector Ready
+                Đã đồng bộ AI
               </span>
             </div>
             <p className="text-xs text-neutral-500">
-              {lesson.transcriptWordCount || 1420} từ • {lesson.vectorChunkCount || 14} chunks vector • Sẵn sàng cho AI Q&amp;A
+              {lesson.transcriptWordCount || 1420} từ • {lesson.vectorChunkCount || 14} đoạn kiến thức • Sẵn sàng cho AI Trợ giảng
             </p>
           </div>
 
