@@ -51,3 +51,24 @@ export function useDeleteInstructor() {
   });
 }
 
+export function useUpdateInstructorStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      instructorService.updateInstructorStatus(id, isActive),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["instructors"] });
+      queryClient.invalidateQueries({ queryKey: ["instructors-stats"] });
+      toast.success(
+        variables.isActive
+          ? "Đã kích hoạt lại cộng tác giảng viên thành công!"
+          : "Đã tạm dừng cộng tác giảng viên thành công!"
+      );
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Không thể cập nhật trạng thái giảng viên!");
+    },
+  });
+}
+

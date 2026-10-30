@@ -93,9 +93,21 @@ export async function mockGetInstructors(
   if (params?.status && params.status !== "all") {
     if (params.status === "active") {
       filtered = filtered.filter((i) => i.isActive);
-    } else if (params.status === "suspended") {
+    } else if (params.status === "suspended" || (params.status as string) === "paused") {
       filtered = filtered.filter((i) => !i.isActive);
     }
+  }
+
+  if (params?.specialty) {
+    const s = params.specialty.toLowerCase();
+    filtered = filtered.filter((i) => {
+      const d = i.degree.toLowerCase();
+      if (s === "ai") return d.includes("ai") || d.includes("dữ liệu") || d.includes("trí tuệ");
+      if (s === "se") return d.includes("phần mềm") || d.includes("fullstack") || d.includes("frontend") || d.includes("devops");
+      if (s === "cs") return d.includes("khoa học máy tính");
+      if (s === "is") return d.includes("an ninh") || d.includes("attt");
+      return true;
+    });
   }
 
   const sortBy = params?.sortBy || "createdAt";
@@ -173,4 +185,23 @@ export async function mockDeleteInstructor(id: string): Promise<{ success: boole
     success: true,
     message: `Đã xóa giảng viên ${target.fullName} thành công`,
   };
+}
+
+export async function mockUpdateInstructorStatus(
+  id: string,
+  isActive: boolean
+): Promise<Instructor> {
+  await delay(200);
+  const index = mockInstructorsDb.findIndex((i) => i.id === id);
+  if (index === -1) {
+    throw new Error("Không tìm thấy thông tin giảng viên");
+  }
+
+  mockInstructorsDb[index] = {
+    ...mockInstructorsDb[index],
+    isActive,
+    updatedAt: new Date().toISOString(),
+  };
+
+  return mockInstructorsDb[index];
 }

@@ -18,9 +18,9 @@ const mockData: TestItem[] = [
 ];
 
 const mockColumns: DataTableColumn<TestItem>[] = [
-  { key: "name", title: "Tên", accessor: "name", sortable: true },
-  { key: "score", title: "Điểm", accessor: "score", sortable: true },
-  { key: "category", title: "Danh mục", accessor: "category" },
+  { key: "name", header: "Tên", accessor: "name", sortable: true },
+  { key: "score", header: "Điểm", accessor: "score", sortable: true },
+  { key: "category", header: "Danh mục", accessor: "category" },
 ];
 
 describe("useDataTableState", () => {

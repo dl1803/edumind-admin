@@ -11,6 +11,7 @@ import {
   mockGetInstructors,
   mockGetInstructorStats,
   mockDeleteInstructor,
+  mockUpdateInstructorStatus,
 } from "./mock/instructor.mock";
 
 function isMockEnabled(): boolean {
@@ -129,6 +130,25 @@ export const instructorService = {
           instructor_id: id,
           deleted: res.success,
         };
+      }
+      throw error;
+    }
+  },
+
+  async updateInstructorStatus(id: string, isActive: boolean): Promise<Instructor> {
+    if (isMockEnabled()) {
+      return mockUpdateInstructorStatus(id, isActive);
+    }
+
+    try {
+      const response = await apiClient.patch<any>(`/admin/instructors/${id}/status`, {
+        is_active: isActive,
+      });
+      const raw = "data" in response.data ? response.data.data : response.data;
+      return mapBackendInstructorToInstructor(raw);
+    } catch (error) {
+      if (process.env.NODE_ENV === "development") {
+        return mockUpdateInstructorStatus(id, isActive);
       }
       throw error;
     }
