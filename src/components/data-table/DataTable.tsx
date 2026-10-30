@@ -25,8 +25,10 @@ export function DataTable<T>({
   skeletonRows = 6,
   searchable = true,
   searchPlaceholder = "Tìm kiếm...",
+  searchQuery,
   searchKeys,
   filters = [],
+  filterValues,
   sort: controlledSort,
   onSortChange,
   page: controlledPage,
@@ -37,6 +39,7 @@ export function DataTable<T>({
   onPageSizeChange,
   onSearchChange,
   onFilterChange,
+  onResetFilters,
   entityName = "khóa học",
   onRowClick,
   emptyState,
@@ -50,11 +53,14 @@ export function DataTable<T>({
     pageSizeDefault: controlledPageSize || 10,
     searchKeys,
     initialSort: controlledSort,
+    initialSearchQuery: searchQuery,
+    initialFilterValues: filterValues,
     onSortChangeExternal: onSortChange,
     onPageChangeExternal: onPageChange,
     onPageSizeChangeExternal: onPageSizeChange,
     onSearchChangeExternal: onSearchChange,
     onFilterChangeExternal: onFilterChange,
+    onResetFiltersExternal: onResetFilters,
   });
 
   const currentPage = mode === "server" ? (controlledPage || 1) : state.page;
@@ -68,6 +74,14 @@ export function DataTable<T>({
 
   const displayData = mode === "server" ? data : state.paginatedData;
 
+  const currentSearchQuery = searchQuery !== undefined ? searchQuery : state.searchQuery;
+  const currentFilterValues = filterValues ?? state.filterValues;
+  const isFiltered =
+    mode === "server" && filterValues
+      ? Boolean((currentSearchQuery || "").trim()) ||
+        Object.values(filterValues).some((v) => Boolean(v))
+      : state.isFiltered;
+
   return (
     <div className={cn("space-y-4", className)}>
       {(searchable || filters.length > 0 || toolbar) && (
@@ -80,13 +94,13 @@ export function DataTable<T>({
                 </span>
                 <input
                   type="text"
-                  value={state.searchQuery}
+                  value={currentSearchQuery}
                   onChange={(e) => state.handleSearchChange(e.target.value)}
                   placeholder={searchPlaceholder}
                   disabled={isLoading}
                   className="w-full pl-8 pr-7 py-1.5 text-xs bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-purple-600 focus:bg-white transition-colors disabled:opacity-50"
                 />
-                {state.searchQuery && (
+                {Boolean(currentSearchQuery) && (
                   <button
                     type="button"
                     onClick={() => state.handleSearchChange("")}
@@ -102,7 +116,7 @@ export function DataTable<T>({
             {filters.map((filter) => (
               <SelectDropdown
                 key={filter.key}
-                value={state.filterValues[filter.key] || ""}
+                value={currentFilterValues[filter.key] || ""}
                 options={[
                   { label: filter.label, value: "" },
                   ...filter.options,
@@ -117,8 +131,8 @@ export function DataTable<T>({
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-purple-100/80 shadow-xs overflow-hidden">
-        <div className="w-full overflow-x-auto custom-scrollbar">
+      <div className="bg-white rounded-xl border border-purple-100/80 shadow-xs">
+        <div className="w-full overflow-x-auto custom-scrollbar rounded-t-xl">
           <table
             className="w-full table-fixed text-left border-collapse min-w-[960px]"
             aria-busy={isLoading}
@@ -223,11 +237,14 @@ export function DataTable<T>({
                 ))
               ) : displayData.length === 0 ? (
                 <DataTableEmpty
-                  isFiltered={state.isFiltered}
+                  isFiltered={isFiltered}
                   title={emptyState?.title}
                   description={emptyState?.description}
                   action={emptyState?.action}
-                  onResetFilters={state.resetFilters}
+                  onResetFilters={() => {
+                    state.resetFilters();
+                    onResetFilters?.();
+                  }}
                   colSpan={columns.length}
                 />
               ) : (
@@ -275,7 +292,7 @@ export function DataTable<T>({
         </div>
 
         {!isLoading && currentTotal > 0 && (
-          <div className="p-4 border-t border-purple-100 bg-white flex flex-wrap items-center justify-between gap-4 text-xs text-neutral-500">
+          <div className="p-4 border-t border-purple-100 bg-white flex flex-wrap items-center justify-between gap-4 text-xs text-neutral-500 rounded-b-xl">
             <div className="flex items-center gap-3">
               <span>
                 Hiển thị{" "}
@@ -306,6 +323,7 @@ export function DataTable<T>({
                     }
                   }}
                   size="sm"
+                  placement="top"
                   className="bg-white"
                 />
               </div>

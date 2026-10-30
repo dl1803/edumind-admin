@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { ExtendedLesson } from "@/hooks/useCourse";
 import { X, FilmStrip, Sparkle, CheckSquareOffset, Check } from "@phosphor-icons/react";
@@ -7,6 +8,7 @@ interface CourseLessonDrawerProps {
   lesson: ExtendedLesson | null;
   chapterTitle?: string;
   chapterOrder?: number;
+  lessonOrder?: number;
   open: boolean;
   onClose: () => void;
 }
@@ -15,21 +17,35 @@ export function CourseLessonDrawer({
   lesson,
   chapterTitle,
   chapterOrder = 1,
+  lessonOrder,
   open,
   onClose,
 }: CourseLessonDrawerProps) {
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && open) onClose();
+      if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [open, onClose]);
 
-  if (!open || !lesson) return null;
+  if (!mounted || !open || !lesson) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+  return createPortal(
+    <div className="fixed inset-0 m-0 p-0 z-50 overflow-hidden">
       <div
         className="absolute inset-0 bg-neutral-900/40 backdrop-blur-[1px] transition-opacity"
         onClick={onClose}
@@ -40,7 +56,7 @@ export function CourseLessonDrawer({
         <div className="p-5 border-b border-neutral-100 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <span className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center text-xs font-bold font-mono shadow-2xs">
-              {chapterOrder}.{lesson.order}
+              {chapterOrder}.{lessonOrder ?? 1}
             </span>
             <div>
               <h3 className="text-sm font-bold text-neutral-900">Chi tiết Bài học</h3>
@@ -169,6 +185,7 @@ export function CourseLessonDrawer({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

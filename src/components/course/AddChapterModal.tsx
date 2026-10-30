@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { FolderPlus, X, Plus } from "@phosphor-icons/react";
 
 interface AddChapterModalProps {
@@ -14,9 +15,14 @@ export function AddChapterModal({
   onClose,
   onSubmit,
 }: AddChapterModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -27,14 +33,21 @@ export function AddChapterModal({
   }, [open]);
 
   useEffect(() => {
+    if (!open) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && open) onClose();
+      if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!mounted || !open) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,8 +66,8 @@ export function AddChapterModal({
 
   const formattedOrder = String(nextOrder).padStart(2, "0");
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 m-0 p-4 z-50 flex items-center justify-center">
       {/* Backdrop Overlay */}
       <div
         className="absolute inset-0 bg-slate-900/50 backdrop-blur-[2px] transition-opacity"
@@ -146,6 +159,7 @@ export function AddChapterModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

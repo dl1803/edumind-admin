@@ -100,8 +100,8 @@ export function CategoryTable({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-xs border border-neutral-100 overflow-hidden">
-      <div className="overflow-x-auto">
+    <div className="bg-white rounded-2xl shadow-xs border border-neutral-100">
+      <div className="overflow-x-auto rounded-t-2xl">
         <table className="w-full text-left border-collapse min-w-[760px]">
           <thead>
             <tr className="bg-purple-50/40 text-[11px] font-bold text-neutral-600 uppercase tracking-wider border-b border-purple-100/80 whitespace-nowrap">
@@ -214,7 +214,7 @@ export function CategoryTable({
       </div>
 
       {/* Table Footer with dynamic pagination */}
-      <div className="p-4 border-t border-purple-100 bg-white flex flex-wrap items-center justify-between gap-4 text-xs text-neutral-500">
+      <div className="p-4 border-t border-purple-100 bg-white flex flex-wrap items-center justify-between gap-4 text-xs text-neutral-500 rounded-b-2xl">
         <div className="flex items-center gap-3">
           <span>
             Hiển thị{" "}
@@ -241,6 +241,7 @@ export function CategoryTable({
                 setPage(1);
               }}
               size="sm"
+              placement="top"
               className="bg-white"
             />
           </div>

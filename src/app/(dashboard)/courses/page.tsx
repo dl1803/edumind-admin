@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useCallback, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
   BookOpen,
@@ -94,6 +94,7 @@ function CoursesContent() {
   const { data: coursesData, isLoading, isError, refetch } = useCourses(params);
   const deleteMutation = useDeleteCourse();
   const updateMutation = useUpdateCourse();
+  const queryClient = useQueryClient();
 
   const currentItems = useMemo(() => coursesData?.items || [], [coursesData?.items]);
   const selectedCourses = useMemo(
@@ -160,7 +161,7 @@ function CoursesContent() {
       { id: courseToDelete.id, payload: { status: "ARCHIVED" } },
       {
         onSuccess: () => {
-          toast.info("Đã chuyển khóa học sang trạng thái Ẩn thành công!");
+
           setCourseToDelete(null);
         },
       }
@@ -171,7 +172,7 @@ function CoursesContent() {
     if (!courseToDelete) return;
     deleteMutation.mutate(courseToDelete.id, {
       onSuccess: () => {
-        toast.error("Đã xóa vĩnh viễn khóa học khỏi hệ thống!");
+
         setCourseToDelete(null);
       },
     });
@@ -212,7 +213,6 @@ function CoursesContent() {
     {
       key: "title",
       header: "Tên khóa học",
-      sortable: true,
       width: "23%",
       cell: (row) => (
         <Link
@@ -285,7 +285,6 @@ function CoursesContent() {
     {
       key: "createdAt",
       header: "Ngày tạo",
-      sortable: true,
       align: "center",
       width: "9%",
       cell: (row) => {
@@ -469,6 +468,7 @@ function CoursesContent() {
         skeletonRows={6}
         searchable={true}
         searchPlaceholder="Tìm tên khóa học..."
+        searchQuery={params.search || ""}
         onSearchChange={(query) => {
           updateParams((prev) => ({ ...prev, search: query, page: 1 }));
         }}
@@ -488,6 +488,19 @@ function CoursesContent() {
             ],
           },
         ]}
+        filterValues={{
+          categoryId: params.categoryId || "",
+          status: params.status || "",
+        }}
+        onResetFilters={() => {
+          updateParams((prev) => ({
+            ...prev,
+            search: "",
+            categoryId: "",
+            status: "",
+            page: 1,
+          }));
+        }}
         onFilterChange={(key, value) => {
           updateParams((prev) => ({
             ...prev,
@@ -685,7 +698,7 @@ function CoursesContent() {
               </button>
 
               <div className="flex items-center gap-2">
-                {courseToDelete.studentCount > 0 && (
+                {courseToDelete.studentCount > 0 ? (
                   <button
                     type="button"
                     disabled={deleteMutation.isPending || updateMutation.isPending}
@@ -695,21 +708,17 @@ function CoursesContent() {
                     <EyeSlash size={16} weight="bold" />
                     <span>Ẩn khóa học</span>
                   </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={deleteMutation.isPending || updateMutation.isPending}
+                    onClick={handleConfirmDelete}
+                    className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm cursor-pointer"
+                    title="Xóa vĩnh viễn"
+                  >
+                    Xóa vĩnh viễn
+                  </button>
                 )}
-                <button
-                  type="button"
-                  disabled={deleteMutation.isPending || updateMutation.isPending}
-                  onClick={handleConfirmDelete}
-                  className={cn(
-                    "px-3.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer",
-                    courseToDelete.studentCount > 0
-                      ? "border border-red-200 text-red-600 hover:bg-red-50"
-                      : "bg-red-600 hover:bg-red-700 text-white font-bold shadow-sm"
-                  )}
-                  title="Xóa vĩnh viễn"
-                >
-                  {courseToDelete.studentCount > 0 ? "Vẫn xóa" : "Xóa vĩnh viễn"}
-                </button>
               </div>
             </div>
           </div>
@@ -801,16 +810,18 @@ function CoursesContent() {
               </button>
 
               <div className="flex items-center gap-2">
-                {batchTotalEnrolled > 0 && (
+                {batchTotalEnrolled > 0 ? (
                   <button
                     type="button"
                     disabled={deleteMutation.isPending || updateMutation.isPending}
                     onClick={async () => {
                       await Promise.all(
                         selectedIds.map((id) =>
-                          updateMutation.mutateAsync({ id, payload: { status: "ARCHIVED" } })
+                          courseService.updateCourse(id, { status: "ARCHIVED" })
                         )
                       );
+                      queryClient.invalidateQueries({ queryKey: ["courses"] });
+                      queryClient.invalidateQueries({ queryKey: ["courses-stats"] });
                       toast.info(`Đã chuyển ${selectedIds.length} khóa học sang trạng thái Ẩn thành công!`);
                       setSelectedIds([]);
                       setBatchAction(null);
@@ -820,26 +831,24 @@ function CoursesContent() {
                     <EyeSlash size={16} weight="bold" />
                     <span>Ẩn hàng loạt</span>
                   </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={deleteMutation.isPending || updateMutation.isPending}
+                    onClick={async () => {
+                      await Promise.all(selectedIds.map((id) => courseService.deleteCourse(id)));
+                      queryClient.invalidateQueries({ queryKey: ["courses"] });
+                      queryClient.invalidateQueries({ queryKey: ["courses-stats"] });
+                      toast.success(`Đã xóa vĩnh viễn ${selectedIds.length} khóa học khỏi danh sách!`);
+                      setSelectedIds([]);
+                      setBatchAction(null);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm cursor-pointer"
+                    title="Xóa vĩnh viễn"
+                  >
+                    Xóa vĩnh viễn
+                  </button>
                 )}
-                <button
-                  type="button"
-                  disabled={deleteMutation.isPending || updateMutation.isPending}
-                  onClick={async () => {
-                    await Promise.all(selectedIds.map((id) => deleteMutation.mutateAsync(id)));
-                    toast.error(`Đã xóa vĩnh viễn ${selectedIds.length} khóa học khỏi danh sách!`);
-                    setSelectedIds([]);
-                    setBatchAction(null);
-                  }}
-                  className={cn(
-                    "px-3.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer",
-                    batchTotalEnrolled > 0
-                      ? "border border-red-200 text-red-600 hover:bg-red-50"
-                      : "bg-red-600 hover:bg-red-700 text-white font-bold shadow-sm"
-                  )}
-                  title="Xóa vĩnh viễn"
-                >
-                  {batchTotalEnrolled > 0 ? "Vẫn xóa tất cả" : "Xóa vĩnh viễn"}
-                </button>
               </div>
             </div>
           </div>
@@ -884,9 +893,11 @@ function CoursesContent() {
                 onClick={async () => {
                   await Promise.all(
                     selectedIds.map((id) =>
-                      updateMutation.mutateAsync({ id, payload: { status: "ARCHIVED" } })
+                      courseService.updateCourse(id, { status: "ARCHIVED" })
                     )
                   );
+                  queryClient.invalidateQueries({ queryKey: ["courses"] });
+                  queryClient.invalidateQueries({ queryKey: ["courses-stats"] });
                   toast.info(`Đã chuyển ${selectedIds.length} khóa học sang trạng thái Ẩn thành công!`);
                   setSelectedIds([]);
                   setBatchAction(null);
@@ -939,9 +950,11 @@ function CoursesContent() {
                 onClick={async () => {
                   await Promise.all(
                     selectedIds.map((id) =>
-                      updateMutation.mutateAsync({ id, payload: { status: "PUBLISHED" } })
+                      courseService.updateCourse(id, { status: "PUBLISHED" })
                     )
                   );
+                  queryClient.invalidateQueries({ queryKey: ["courses"] });
+                  queryClient.invalidateQueries({ queryKey: ["courses-stats"] });
                   toast.success(`Đã xuất bản ${selectedIds.length} khóa học thành công!`);
                   setSelectedIds([]);
                   setBatchAction(null);
