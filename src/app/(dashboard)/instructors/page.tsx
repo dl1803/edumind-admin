@@ -220,9 +220,11 @@ function InstructorsContent() {
       headerAlign: "center",
       cell: (row) => (
         <div className="space-y-0.5 text-center flex flex-col items-center justify-center">
-          <p className="font-medium text-neutral-900 truncate max-w-full">{row.degree}</p>
+          <p className="font-medium text-neutral-900 truncate max-w-full">
+            {row.degree}
+          </p>
           <p className="text-[11px] text-neutral-500 truncate max-w-full">
-            {row.workplace || "Học viện EduMind"}
+            {row.workplace || "ĐH Bách Khoa TP.HCM"}
           </p>
         </div>
       ),
@@ -331,7 +333,7 @@ function InstructorsContent() {
               title={
                 canDelete
                   ? "Xóa hồ sơ giảng viên"
-                  : `Không thể xóa khi đang phụ trách ${row.courseCount} khóa học (BR-17)`
+                  : `Không thể xóa khi đang phụ trách ${row.courseCount} khóa học`
               }
             >
               <Trash size={16} weight="bold" />
@@ -435,10 +437,12 @@ function InstructorsContent() {
             className="w-full appearance-none pl-3 pr-8 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-xs text-neutral-700 font-sans focus:bg-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition cursor-pointer"
           >
             <option value="">Tất cả chuyên môn</option>
-            <option value="ai">Khoa học Dữ liệu & AI</option>
-            <option value="se">Công nghệ Phần mềm</option>
             <option value="cs">Khoa học Máy tính</option>
+            <option value="se">Công nghệ Phần mềm</option>
+            <option value="ai">Khoa học Dữ liệu & AI</option>
             <option value="is">An toàn Thông tin</option>
+            <option value="architect">Senior Architect</option>
+            <option value="lecturer">Senior Lecturer</option>
           </select>
           <CaretDown
             size={14}
@@ -474,6 +478,21 @@ function InstructorsContent() {
         rowKey={(row) => row.id}
         mode="server"
         searchable={false}
+        searchQuery={params.search || ""}
+        filterValues={{
+          specialty: params.specialty || "",
+          status: params.status || "",
+        }}
+        onResetFilters={() => {
+          setSearchInput("");
+          updateParams((prev) => ({
+            ...prev,
+            search: "",
+            specialty: "",
+            status: "",
+            page: 1,
+          }));
+        }}
         isLoading={isLoading}
         skeletonRows={5}
         entityName="giảng viên"
@@ -502,20 +521,26 @@ function InstructorsContent() {
             sortDir: sort?.direction || undefined,
           }));
         }}
-        emptyState={{
-          title: "Chưa có hồ sơ giảng viên nào",
-          description:
-            "Hệ thống chưa ghi nhận thông tin giảng viên nào hoặc các tiêu chí tìm kiếm hiện tại không có kết quả phù hợp.",
-          action: (
-            <Link
-              href="/instructors/new"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white grad-nebula font-bold text-xs shadow-nebula hover:opacity-95 transition"
-            >
-              <Plus size={16} weight="bold" />
-              <span>Thêm giảng viên đầu tiên</span>
-            </Link>
-          ),
-        }}
+        emptyState={
+          Boolean((params.search || "").trim()) ||
+          Boolean(params.specialty) ||
+          Boolean(params.status && params.status !== "all")
+            ? undefined
+            : {
+                title: "Chưa có hồ sơ giảng viên nào",
+                description:
+                  "Hệ thống chưa ghi nhận thông tin giảng viên nào trong cơ sở dữ liệu.",
+                action: (
+                  <Link
+                    href="/instructors/new"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white grad-nebula font-bold text-xs shadow-nebula hover:opacity-95 transition"
+                  >
+                    <Plus size={16} weight="bold" />
+                    <span>Thêm giảng viên đầu tiên</span>
+                  </Link>
+                ),
+              }
+        }
       />
 
       {/* FLOATING SELECTION BAR */}

@@ -57,8 +57,8 @@ describe("InstructorService", () => {
       expect(res.items.length).toBeGreaterThan(0);
       expect(
         res.items.every((i) => {
-          const d = i.degree.toLowerCase();
-          return d.includes("ai") || d.includes("trí tuệ") || d.includes("dữ liệu");
+          const spec = (i.specialty || i.degree).toLowerCase();
+          return spec.includes("ai") || spec.includes("trí tuệ") || spec.includes("dữ liệu");
         })
       ).toBe(true);
     });
@@ -96,7 +96,7 @@ describe("InstructorService", () => {
     });
   });
 
-  describe("deleteInstructor (Quy tắc BR-17)", () => {
+  describe("deleteInstructor", () => {
     it("chặn xóa giảng viên đang phụ trách khóa học (courseCount > 0)", async () => {
       await expect(instructorService.deleteInstructor("GV-2026-0001")).rejects.toThrow(
         "Không thể xóa giảng viên đang phụ trách khóa học"

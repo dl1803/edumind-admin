@@ -7,6 +7,7 @@ export const INITIAL_MOCK_INSTRUCTORS: Instructor[] = [
     fullName: "TS. Lê Hoàng Nam",
     avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80",
     degree: "Kỹ thuật Dữ liệu & AI",
+    specialty: "Khoa học Dữ liệu & AI",
     workplace: "ĐH Bách Khoa TP.HCM",
     email: "nam.le@edumind.edu.vn",
     phone: "0901234561",
@@ -19,6 +20,7 @@ export const INITIAL_MOCK_INSTRUCTORS: Instructor[] = [
     fullName: "PGS.TS. Trần Minh Đức",
     avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80",
     degree: "Trí tuệ Nhân tạo & LLM",
+    specialty: "Khoa học Dữ liệu & AI",
     workplace: "ĐH Quốc gia Hà Nội",
     email: "duc.tran@edumind.edu.vn",
     phone: "0901234562",
@@ -31,6 +33,7 @@ export const INITIAL_MOCK_INSTRUCTORS: Instructor[] = [
     fullName: "ThS. Nguyễn Thị Mai",
     avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&q=80",
     degree: "Frontend & Fullstack JS",
+    specialty: "Công nghệ Phần mềm",
     workplace: "FPT Software Academy",
     email: "mai.nguyen@edumind.edu.vn",
     phone: "0901234563",
@@ -43,6 +46,7 @@ export const INITIAL_MOCK_INSTRUCTORS: Instructor[] = [
     fullName: "TS. Vũ Hoài An",
     avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80",
     degree: "An ninh mạng & ATTT",
+    specialty: "An toàn Thông tin",
     workplace: "Học viện Kỹ thuật Quân sự",
     email: "an.vu@edumind.edu.vn",
     phone: "0901234564",
@@ -55,6 +59,7 @@ export const INITIAL_MOCK_INSTRUCTORS: Instructor[] = [
     fullName: "Kỹ sư Phạm Quốc Huy",
     avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80",
     degree: "DevOps, Docker & K8s",
+    specialty: "Công nghệ Phần mềm",
     workplace: "Tech Lead tại VNG Corp",
     email: "huy.pham@edumind.edu.vn",
     phone: "0901234565",
@@ -101,12 +106,16 @@ export async function mockGetInstructors(
   if (params?.specialty) {
     const s = params.specialty.toLowerCase();
     filtered = filtered.filter((i) => {
-      const d = i.degree.toLowerCase();
-      if (s === "ai") return d.includes("ai") || d.includes("dữ liệu") || d.includes("trí tuệ");
-      if (s === "se") return d.includes("phần mềm") || d.includes("fullstack") || d.includes("frontend") || d.includes("devops");
-      if (s === "cs") return d.includes("khoa học máy tính");
-      if (s === "is") return d.includes("an ninh") || d.includes("attt");
-      return true;
+      const spec = (i.specialty || "").toLowerCase();
+      const deg = (i.degree || "").toLowerCase();
+      const full = `${spec} ${deg}`.toLowerCase();
+      if (s === "ai") return full.includes("ai") || full.includes("dữ liệu") || full.includes("trí tuệ");
+      if (s === "se") return full.includes("phần mềm") || full.includes("software");
+      if (s === "cs") return full.includes("khoa học máy tính") || full.includes("máy tính");
+      if (s === "is") return full.includes("an ninh") || full.includes("an toàn") || full.includes("attt");
+      if (s === "architect") return full.includes("architect");
+      if (s === "lecturer") return full.includes("lecturer");
+      return full.includes(s);
     });
   }
 

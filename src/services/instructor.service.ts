@@ -59,7 +59,23 @@ export const instructorService = {
         ? (resData as any).items
         : [];
 
-      const items = rawItems.map(mapBackendInstructorToInstructor);
+      let items = rawItems.map(mapBackendInstructorToInstructor);
+
+      if (params?.specialty) {
+        const s = params.specialty.toLowerCase();
+        items = items.filter((item) => {
+          const spec = (item.specialty || "").toLowerCase();
+          const deg = (item.degree || "").toLowerCase();
+          const full = `${spec} ${deg}`.toLowerCase();
+          if (s === "cs") return full.includes("khoa học máy tính") || full.includes("máy tính") || full.includes("computer science");
+          if (s === "se") return full.includes("phần mềm") || full.includes("software");
+          if (s === "ai") return full.includes("ai") || full.includes("dữ liệu") || full.includes("trí tuệ");
+          if (s === "is") return full.includes("an toàn") || full.includes("an ninh") || full.includes("attt") || full.includes("bảo mật");
+          if (s === "architect") return full.includes("architect");
+          if (s === "lecturer") return full.includes("lecturer");
+          return full.includes(s);
+        });
+      }
 
       return {
         items,
