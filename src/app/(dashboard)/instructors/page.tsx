@@ -397,7 +397,7 @@ function InstructorsContent() {
         </div>
       )}
 
-      {/* FILTER BAR - EXACT PROTOTYPE A-14 & USER SPEC */}
+      {/* Filter bar */}
       <div className="bg-white p-3.5 rounded-xl border border-purple-100 shadow-xs flex items-center gap-3">
         {/* Search Box */}
         <div className="relative flex-1">
