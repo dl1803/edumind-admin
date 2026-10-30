@@ -35,6 +35,7 @@ export interface Course {
   description: string;
   shortDescription?: string;
   thumbnailUrl?: string;
+  thumbnailFile?: File | null;
   categoryId: string;
   categoryName?: string;
   instructorId: string;
@@ -69,6 +70,7 @@ export interface CoursePayload {
   priceVnd: number;
   status: CourseStatus;
   thumbnailUrl?: string;
+  thumbnailFile?: File | null;
   chapters?: Chapter[];
 }
 
@@ -77,9 +79,12 @@ export interface CourseFormValues {
   shortDescription?: string;
   description: string;
   categoryId: string;
+  categoryName?: string;
   instructorId: string;
+  instructorName?: string;
   priceVnd: number;
   thumbnailUrl?: string;
+  thumbnailFile?: File | null;
   status: CourseStatus;
   chapters: Chapter[];
 }
