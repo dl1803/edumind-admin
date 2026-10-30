@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { apiClient } from '../api-client';
+import { apiClient, parseJwtExp, isTokenExpired } from '../api-client';
 import { TokenStorage } from '@/lib/token-storage';
 
 jest.mock('@/lib/token-storage', () => ({
@@ -18,6 +18,14 @@ jest.mock('axios', () => {
         post: jest.fn(),
     };
 });
+
+// Helper tạo JWT mock với payload exp cụ thể
+function createMockJwt(expSeconds: number): string {
+    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64');
+    const payload = Buffer.from(JSON.stringify({ sub: 'user123', exp: expSeconds })).toString('base64');
+    const signature = 'mock_signature';
+    return `${header}.${payload}.${signature}`;
+}
 
 describe('apiClient Interceptor', () => {
     beforeEach(() => {
@@ -128,7 +136,7 @@ describe('apiClient Interceptor', () => {
         const p2 = apiClient.get('/req2');
         const p3 = apiClient.get('/req3');
 
-        // Chờ microtasks để cả 3 request nhận 401 và rơi vào refresh / failedQueue
+        // Chờ microtasks để cả 3 request nhận 401 và rơi vào refresh
         await new Promise((r) => setTimeout(r, 10));
 
         // Giải phóng refresh response
@@ -148,5 +156,53 @@ describe('apiClient Interceptor', () => {
         expect(r3.data).toBe('success_/req3');
         expect(axios.post).toHaveBeenCalledTimes(1);
     });
-});
 
+    describe('Chủ động Refresh Token (Proactive Refresh)', () => {
+        it('parseJwtExp phân tích đúng exp từ JWT', () => {
+            const nowSeconds = Math.floor(Date.now() / 1000);
+            const token = createMockJwt(nowSeconds + 300);
+            expect(parseJwtExp(token)).toBe(nowSeconds + 300);
+            expect(parseJwtExp('invalid-token')).toBeNull();
+        });
+
+        it('isTokenExpired trả về true khi token đã quá hạn hoặc còn dưới 45 giây', () => {
+            const nowSeconds = Math.floor(Date.now() / 1000);
+            const expiredToken = createMockJwt(nowSeconds - 10);
+            const expiringSoonToken = createMockJwt(nowSeconds + 30); // còn 30s (< 45s buffer)
+            const validToken = createMockJwt(nowSeconds + 600); // còn 10 phút
+
+            expect(isTokenExpired(expiredToken)).toBe(true);
+            expect(isTokenExpired(expiringSoonToken)).toBe(true);
+            expect(isTokenExpired(validToken)).toBe(false);
+            expect(isTokenExpired('not_a_jwt')).toBe(false);
+        });
+
+        it('tự động refresh trước khi gửi request nếu access token đã hết hạn (tránh guest mode)', async () => {
+            const nowSeconds = Math.floor(Date.now() / 1000);
+            let currentToken = createMockJwt(nowSeconds - 100); // Đã hết hạn
+
+            (TokenStorage.getAccessToken as jest.Mock).mockImplementation(() => currentToken);
+            (TokenStorage.getRefreshToken as jest.Mock).mockReturnValue('valid_refresh');
+            (TokenStorage.setTokens as jest.Mock).mockImplementation((access) => {
+                currentToken = access;
+            });
+
+            (axios.post as jest.Mock).mockResolvedValue({
+                data: {
+                    access_token: 'proactively_refreshed_token',
+                    refresh_token: 'new_refresh',
+                },
+            });
+
+            apiClient.defaults.adapter = jest.fn().mockImplementation((config) => {
+                expect(config.headers.Authorization).toBe('Bearer proactively_refreshed_token');
+                return Promise.resolve({ data: 'proactive_success', status: 200, headers: {}, config });
+            });
+
+            const res = await apiClient.get('/courses');
+            expect(res.data).toBe('proactive_success');
+            expect(axios.post).toHaveBeenCalledTimes(1);
+            expect(TokenStorage.setTokens).toHaveBeenCalledWith('proactively_refreshed_token', 'new_refresh');
+        });
+    });
+});
