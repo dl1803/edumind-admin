@@ -174,4 +174,3 @@ export async function mockDeleteInstructor(id: string): Promise<{ success: boole
     message: `Đã xóa giảng viên ${target.fullName} thành công`,
   };
 }
-
