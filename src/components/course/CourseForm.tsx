@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, forwardRef, useImperativeHandle } from "react";
+import React, { useState, useRef, forwardRef, useImperativeHandle, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { courseFormSchema, CourseFormSchemaType } from "@/lib/validations/course.schema";
 import { CourseFormValues } from "@/types/course.types";
 import { useCourseCategories, useCourseInstructors } from "@/hooks/useCourses";
+import { toast } from "@/hooks/useToast";
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
 import { SyllabusEditor } from "./SyllabusEditor";
 import { Modal } from "@/components/ui/Modal";
@@ -19,6 +20,7 @@ import {
   PlusCircle,
   Check,
   Warning,
+  WarningCircle,
   Info,
   Tag,
   ChalkboardTeacher,
@@ -51,9 +53,14 @@ export const CourseForm = forwardRef<CourseFormRef, CourseFormProps>(function Co
   const [previewThumbnail, setPreviewThumbnail] = useState<string>(
     initialValues?.thumbnailUrl || ""
   );
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(
+    initialValues?.thumbnailFile || null
+  );
 
   const { data: categories = [] } = useCourseCategories();
   const { data: instructors = [] } = useCourseInstructors();
+
+  const isLoadedRef = useRef<string | null>(null);
 
   const {
     register,
@@ -62,6 +69,7 @@ export const CourseForm = forwardRef<CourseFormRef, CourseFormProps>(function Co
     watch,
     setValue,
     getValues,
+    reset,
     formState: { errors, isDirty },
   } = useForm<CourseFormSchemaType>({
     resolver: zodResolver(courseFormSchema),
@@ -78,8 +86,56 @@ export const CourseForm = forwardRef<CourseFormRef, CourseFormProps>(function Co
     },
   });
 
+  useEffect(() => {
+    if (initialValues && isLoadedRef.current !== ((initialValues as any).id || "init")) {
+      isLoadedRef.current = (initialValues as any).id || "init";
+      reset({
+        title: initialValues.title || "",
+        shortDescription: initialValues.shortDescription || "",
+        description: initialValues.description || "",
+        categoryId: initialValues.categoryId || "",
+        instructorId: initialValues.instructorId || "",
+        priceVnd: initialValues.priceVnd ?? 0,
+        thumbnailUrl: initialValues.thumbnailUrl || "",
+        status: initialValues.status || "DRAFT",
+        chapters: initialValues.chapters || [],
+      });
+      if (initialValues.thumbnailUrl) {
+        setPreviewThumbnail(initialValues.thumbnailUrl);
+      }
+    }
+  }, [initialValues, reset]);
+
+  // Tự động đối soát categoryId và instructorId theo tên khi backend Staging trả về dạng phẳng category_name / instructor_name
+  useEffect(() => {
+    if (categories.length > 0 && !getValues("categoryId") && initialValues?.categoryName) {
+      const match = categories.find(
+        (c) => c.name.toLowerCase() === initialValues.categoryName?.toLowerCase()
+      );
+      if (match) {
+        setValue("categoryId", match.id, { shouldValidate: true, shouldDirty: false });
+      }
+    }
+  }, [categories, initialValues?.categoryName, getValues, setValue]);
+
+  useEffect(() => {
+    if (instructors.length > 0 && !getValues("instructorId") && initialValues?.instructorName) {
+      const match = instructors.find(
+        (i) => i.name.toLowerCase() === initialValues.instructorName?.toLowerCase()
+      );
+      if (match) {
+        setValue("instructorId", match.id, { shouldValidate: true, shouldDirty: false });
+      }
+    }
+  }, [instructors, initialValues?.instructorName, getValues, setValue]);
+
   const chapters = watch("chapters");
   const currentStatus = watch("status");
+  const hasChapters =
+    (initialValues?.chapters?.length ||
+      (initialValues as any)?.chapterCount ||
+      chapters?.length ||
+      0) > 0;
 
   const isFormModified = () => {
     const vals = getValues();
@@ -116,6 +172,7 @@ export const CourseForm = forwardRef<CourseFormRef, CourseFormProps>(function Co
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setThumbnailFile(file);
       const objectUrl = URL.createObjectURL(file);
       setPreviewThumbnail(objectUrl);
       setValue("thumbnailUrl", objectUrl, { shouldDirty: true });
@@ -123,13 +180,57 @@ export const CourseForm = forwardRef<CourseFormRef, CourseFormProps>(function Co
   };
 
   const handleRemoveThumbnail = () => {
+    setThumbnailFile(null);
     setPreviewThumbnail("");
     setValue("thumbnailUrl", "", { shouldDirty: true });
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const onFormSubmit = (data: CourseFormSchemaType) => {
+    if (data.status === "PUBLISHED" && !hasChapters) {
+      toast.error(
+        "Không thể xuất bản: Khóa học phải có tối thiểu 01 chương và bài học."
+      );
+      return;
+    }
+    onSubmit({
+      ...data,
+      thumbnailFile,
+    } as CourseFormValues);
+  };
+
+  const onFormError = (formErrors: any) => {
+    console.error("CourseForm validation errors:", formErrors);
+    const errorKeys = Object.keys(formErrors);
+    if (errorKeys.length > 0) {
+      const firstField = errorKeys[0];
+      const err = formErrors[firstField];
+      const message =
+        err?.message ||
+        (Array.isArray(err) && err[0]?.message) ||
+        err?.title?.message ||
+        `Vui lòng kiểm tra lại trường thông tin: ${firstField}`;
+      toast.error(message);
+
+      // Nếu lỗi nằm ở tab info nhưng user đang đứng ở tab syllabus -> tự động chuyển về tab info
+      const infoFields = [
+        "title",
+        "shortDescription",
+        "description",
+        "categoryId",
+        "instructorId",
+        "priceVnd",
+      ];
+      if (infoFields.includes(firstField)) {
+        setActiveTab("info");
+      } else if (firstField === "chapters") {
+        setActiveTab("syllabus");
+      }
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pb-24">
+    <form onSubmit={handleSubmit(onFormSubmit, onFormError)} className="space-y-6 pb-24">
       {/* Thanh tab căn giữa và căn đều chuẩn theo phong cách A-05 Course Detail */}
       <div className="bg-white border-b border-purple-100 grid grid-cols-2 shrink-0 mb-6">
         <button
@@ -415,7 +516,12 @@ export const CourseForm = forwardRef<CourseFormRef, CourseFormProps>(function Co
                   value={watch("status") || "DRAFT"}
                   options={[
                     { label: "Bản nháp (Đang soạn thảo)", value: "DRAFT" },
-                    { label: "Công khai (Đã xuất bản)", value: "PUBLISHED" },
+                    {
+                      label: hasChapters
+                        ? "Công khai (Đã xuất bản)"
+                        : "Công khai (Cần tối thiểu 1 chương)",
+                      value: "PUBLISHED",
+                    },
                     { label: "Lưu trữ / Ẩn", value: "ARCHIVED" },
                   ]}
                   onChange={(val) =>
@@ -434,24 +540,38 @@ export const CourseForm = forwardRef<CourseFormRef, CourseFormProps>(function Co
                     Khóa học mới tạo mặc định ở trạng thái Bản nháp cho đến khi hoàn tất nội dung bài giảng.
                   </p>
                 ) : (
-                  <div className="mt-2 text-[11px] flex items-center gap-1.5 text-neutral-500">
-                    <span>Trạng thái hiện tại:</span>
-                    <span
-                      className={`font-bold ${
-                        currentStatus === "PUBLISHED"
-                          ? "text-emerald-600"
+                  <>
+                    <div className="mt-2 text-[11px] flex items-center gap-1.5 text-neutral-500">
+                      <span>Trạng thái hiện tại:</span>
+                      <span
+                        className={`font-bold ${
+                          currentStatus === "PUBLISHED"
+                            ? "text-emerald-600"
+                            : currentStatus === "DRAFT"
+                            ? "text-amber-600"
+                            : "text-neutral-500"
+                        }`}
+                      >
+                        {currentStatus === "PUBLISHED"
+                          ? "Đã xuất bản"
                           : currentStatus === "DRAFT"
-                          ? "text-amber-600"
-                          : "text-neutral-500"
-                      }`}
-                    >
-                      {currentStatus === "PUBLISHED"
-                        ? "Đã xuất bản"
-                        : currentStatus === "DRAFT"
-                        ? "Bản nháp"
-                        : "Lưu trữ"}
-                    </span>
-                  </div>
+                          ? "Bản nháp"
+                          : "Lưu trữ"}
+                      </span>
+                    </div>
+
+                    {currentStatus === "PUBLISHED" && !hasChapters && (
+                      <div className="mt-2.5 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2">
+                        <WarningCircle size={16} className="text-amber-600 shrink-0 mt-0.5" weight="fill" />
+                        <div>
+                          <span className="font-bold block text-[11px]">Chưa đủ điều kiện xuất bản</span>
+                          <p className="text-[10px] text-amber-700 mt-0.5 leading-relaxed">
+                            Khóa học chưa có chương & bài học. Vui lòng thiết lập đề cương và xuất bản tại tab <strong>Xuất bản & Điều kiện</strong>.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -481,7 +601,7 @@ export const CourseForm = forwardRef<CourseFormRef, CourseFormProps>(function Co
             type="button"
             onClick={() => {
               setValue("status", "DRAFT");
-              handleSubmit(onSubmit)();
+              handleSubmit(onFormSubmit, onFormError)();
             }}
             disabled={isSubmitting}
             className="px-4 py-2 rounded-xl border border-purple-200 text-purple-700 hover:bg-purple-50 text-xs font-semibold transition disabled:opacity-50"

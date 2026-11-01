@@ -7,7 +7,6 @@ import { useCourse, CourseDetailExtended, ExtendedChapter } from "@/hooks/useCou
 import { CourseInfoCard } from "@/components/course/CourseInfoCard";
 import { CourseOutlineReadOnly } from "@/components/course/CourseOutlineReadOnly";
 import { CoursePublishChecklist } from "@/components/course/CoursePublishChecklist";
-import { AddChapterModal } from "@/components/course/AddChapterModal";
 import { TopBarContent } from "@/context/TopBarContext";
 import { toast } from "@/hooks/useToast";
 import { CourseStatus } from "@/types/course.types";
@@ -15,7 +14,6 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import {
   CaretRight,
   PencilSimple,
-  Plus,
   Info,
   TreeStructure,
   RocketLaunch,
@@ -32,7 +30,6 @@ export default function CourseDetailPage() {
   const { data: course, isLoading, isError, refetch } = useCourse(courseId);
 
   const [activeTab, setActiveTab] = useState<TabKey>("tab1");
-  const [isAddChapterOpen, setIsAddChapterOpen] = useState(false);
   const [localStatus, setLocalStatus] = useState<CourseStatus | null>(null);
   const [localChapters, setLocalChapters] = useState<ExtendedChapter[] | null>(null);
 
@@ -189,22 +186,6 @@ export default function CourseDetailPage() {
     );
   };
 
-  const handleAddChapter = (newChapterData: {
-    title: string;
-    description?: string;
-    order: number;
-  }) => {
-    const newChapter: ExtendedChapter = {
-      id: `chap-${Date.now()}`,
-      title: `Chương ${newChapterData.order}: ${newChapterData.title}`,
-      order: newChapterData.order,
-      description: newChapterData.description,
-      lessons: [],
-    };
-    setLocalChapters([...currentChapters, newChapter]);
-    toast.success(`Đã thêm mới Chương ${newChapterData.order} vào khóa học!`);
-  };
-
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <TopBarContent
@@ -231,16 +212,6 @@ export default function CourseDetailPage() {
         }
         actions={
           <div className="flex items-center gap-3">
-            {activeTab === "tab2" && (
-              <button
-                type="button"
-                onClick={() => setIsAddChapterOpen(true)}
-                className="px-3.5 py-1.5 rounded-xl border border-purple-200 text-purple-700 hover:bg-purple-50 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
-              >
-                <Plus size={14} weight="bold" />
-                <span>Thêm chương mới</span>
-              </button>
-            )}
             <Link
               href={`/courses/${courseId}/edit`}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white grad-nebula shadow-nebula hover:opacity-95 font-bold text-xs transition"
@@ -302,7 +273,6 @@ export default function CourseDetailPage() {
       {activeTab === "tab2" && (
         <CourseOutlineReadOnly
           chapters={effectiveCourse.chapters}
-          onAddChapter={() => setIsAddChapterOpen(true)}
         />
       )}
 
@@ -311,14 +281,6 @@ export default function CourseDetailPage() {
           course={effectiveCourse}
         />
       )}
-
-      {/* Modal Thêm chương học mới */}
-      <AddChapterModal
-        open={isAddChapterOpen}
-        nextOrder={currentChapters.length + 1}
-        onClose={() => setIsAddChapterOpen(false)}
-        onSubmit={handleAddChapter}
-      />
     </div>
   );
 }

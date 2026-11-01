@@ -134,7 +134,7 @@ describe("CourseDetailPage (A-05 Page Assembly)", () => {
     expect(screen.getByText("TS. Lê Hoàng Nam")).toBeInTheDocument();
   });
 
-  it("chuyển sang Tab 2 Cấu trúc bài giảng và hiển thị nút Thêm chương mới", () => {
+  it("chuyển sang Tab 2 Cấu trúc bài giảng và hiển thị nội dung đề cương (chế độ xem chỉ đọc)", () => {
     mockUseCourse.mockReturnValue({
       data: mockCourseData,
       isLoading: false,
@@ -147,9 +147,14 @@ describe("CourseDetailPage (A-05 Page Assembly)", () => {
     const tab2Btn = screen.getByRole("button", { name: /Cấu trúc bài giảng/i });
     fireEvent.click(tab2Btn);
 
-    // Ở Tab 2, nút Thêm chương mới xuất hiện trong TopBar actions
+    // Ở trang chi tiết chỉ đọc, nút Thêm chương mới không hiển thị
     expect(
-      screen.getByRole("button", { name: /Thêm chương mới/i })
+      screen.queryByRole("button", { name: /Thêm chương mới/i })
+    ).not.toBeInTheDocument();
+
+    // Nút chỉnh sửa thông tin vẫn luôn có
+    expect(
+      screen.getByRole("link", { name: /Chỉnh sửa thông tin/i })
     ).toBeInTheDocument();
 
     // Hiển thị nội dung đề cương

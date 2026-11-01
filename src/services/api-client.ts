@@ -23,32 +23,100 @@ export const apiClient = axios.create({
     },
 });
 
-// Trạng thái quản lý race condition refresh token
-let isRefreshing = false;
-let failedQueue: Array<{
-    resolve: (token: string) => void;
-    reject: (error: unknown) => void;
-}> = [];
-
-const processQueue = (error: unknown, token: string | null = null) => {
-    failedQueue.forEach((promise) => {
-        if (error) {
-            promise.reject(error);
-        } else if (token) {
-            promise.resolve(token);
+// Helper: Phân tích thời gian hết hạn (exp claim) từ JWT Token
+export function parseJwtExp(token: string): number | null {
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return null;
+        let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        while (base64.length % 4 !== 0) {
+            base64 += '=';
         }
-    });
-    failedQueue = [];
-};
+        let jsonStr: string;
+        if (typeof atob === 'function') {
+            jsonStr = atob(base64);
+        } else if (typeof Buffer !== 'undefined') {
+            jsonStr = Buffer.from(base64, 'base64').toString('utf8');
+        } else {
+            return null;
+        }
+        const payload = JSON.parse(jsonStr);
+        return typeof payload.exp === 'number' ? payload.exp : null;
+    } catch {
+        return null;
+    }
+}
 
-// 1. Request Interceptor: Tự động đính kèm Bearer Token
+// Kiểm tra token đã hết hạn hoặc sắp hết hạn (buffer trước 120 giây / 2 phút chống lệch clock skew)
+export function isTokenExpired(token: string, bufferSeconds = 120): boolean {
+    const exp = parseJwtExp(token);
+    if (!exp) return false;
+    return Date.now() >= (exp - bufferSeconds) * 1000;
+}
+
+// Singleton Promise để chống race-condition khi nhiều request đồng thời cần refresh token
+let refreshPromise: Promise<string> | null = null;
+
+export async function executeRefresh(): Promise<string> {
+    if (refreshPromise) {
+        return refreshPromise;
+    }
+
+    refreshPromise = (async () => {
+        try {
+            const { accessToken: newAccessToken } = await authService.refresh();
+            return newAccessToken;
+        } catch (error) {
+            TokenStorage.clearTokens();
+            if (typeof window !== 'undefined') {
+                window.location.href = '/login';
+            }
+            throw error;
+        } finally {
+            refreshPromise = null;
+        }
+    })();
+
+    return refreshPromise;
+}
+
+// 1. Request Interceptor: Strict Admin Guard - Tự động đính kèm Token & Chủ động Refresh trước khi gửi
 apiClient.interceptors.request.use(
-    (config: CustomAxiosRequestConfig) => {
-        if (config.skipAuth) {
+    async (config: CustomAxiosRequestConfig) => {
+        const isAuthEndpoint = config.url?.includes('auth/login') || config.url?.includes('auth/refresh');
+        if (config.skipAuth || isAuthEndpoint) {
             return config;
         }
 
-        const token = TokenStorage.getAccessToken();
+        let token = TokenStorage.getAccessToken();
+        const refreshToken = TokenStorage.getRefreshToken();
+
+        // Chủ động làm mới nếu token đã hết hạn hoặc sắp hết hạn (< 120s) để tránh bị rơi vào guest mode ở các public endpoint
+        if (token && isTokenExpired(token, 120)) {
+            if (refreshToken) {
+                try {
+                    token = await executeRefresh();
+                } catch (err) {
+                    return Promise.reject(err);
+                }
+            } else {
+                TokenStorage.clearTokens();
+                if (typeof window !== 'undefined') {
+                    window.location.href = '/login';
+                }
+                return Promise.reject(new Error('Phiên đăng nhập đã hết hạn.'));
+            }
+        }
+
+        // Web Admin không cho phép gửi request ẩn danh: nếu không có token, đá về login ngay
+        if (!token) {
+            TokenStorage.clearTokens();
+            if (typeof window !== 'undefined') {
+                window.location.href = '/login';
+            }
+            return Promise.reject(new Error('Chưa đăng nhập quyền Quản trị viên.'));
+        }
+
         if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -58,7 +126,7 @@ apiClient.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// 2. Response Interceptor: Bắt 401 & Auto Refresh
+// 2. Response Interceptor: Bắt 401 & Auto Refresh (phòng hờ token bị thu hồi trên server)
 apiClient.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
@@ -72,22 +140,7 @@ apiClient.interceptors.response.use(
         const isAuthEndpoint = originalRequest.url?.includes('auth/login') || originalRequest.url?.includes('auth/refresh');
 
         if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
-            if (isRefreshing) {
-                // Đẩy vào hàng đợi nếu luồng khác đang refresh
-                return new Promise<string>((resolve, reject) => {
-                    failedQueue.push({ resolve, reject });
-                })
-                    .then((newToken) => {
-                        if (originalRequest.headers) {
-                            originalRequest.headers.Authorization = `Bearer ${newToken}`;
-                        }
-                        return apiClient(originalRequest);
-                    })
-                    .catch((err) => Promise.reject(err));
-            }
-
             originalRequest._retry = true;
-            isRefreshing = true;
 
             const refreshToken = TokenStorage.getRefreshToken();
             if (!refreshToken) {
@@ -99,22 +152,13 @@ apiClient.interceptors.response.use(
             }
 
             try {
-                 // Gọi qua authService.refresh() tập trung
-                const { accessToken: newAccessToken } = await authService.refresh();
-                processQueue(null, newAccessToken);
+                const newAccessToken = await executeRefresh();
                 if (originalRequest.headers) {
                     originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
                 }
                 return apiClient(originalRequest);
             } catch (refreshError) {
-                processQueue(refreshError, null);
-                TokenStorage.clearTokens();
-                if (typeof window !== 'undefined') {
-                    window.location.href = '/login';
-                }
                 return Promise.reject(refreshError);
-            } finally {
-                isRefreshing = false;
             }
         }
 

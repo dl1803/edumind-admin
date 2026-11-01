@@ -95,7 +95,7 @@ export function useCourse(id?: string) {
         lessonCount:
           baseCourse.lessonCount ??
           enhancedChapters.reduce((acc, c) => acc + (c.lessons?.length || 0), 0),
-        totalDurationHours: computedDurationHours ?? 18.5,
+        totalDurationHours: computedDurationHours ?? 0,
         accumulatedRevenueVnd: computedRevenue,
         learningOutcomes: [
           "Nắm vững cú pháp Python 3.12 từ cơ sở, thuật toán căn bản và lập trình hướng đối tượng (OOP).",

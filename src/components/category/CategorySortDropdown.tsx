@@ -11,8 +11,7 @@ export interface SortOption {
 }
 
 const SORT_OPTIONS: SortOption[] = [
-  { key: "createdAt", dir: "desc", label: "Mới tạo nhất" },
-  { key: "createdAt", dir: "asc", label: "Cũ nhất" },
+  { key: "createdAt", dir: "desc", label: "Tạo mới nhất" },
   { key: "name", dir: "asc", label: "Tên danh mục (A-Z)" },
   { key: "name", dir: "desc", label: "Tên danh mục (Z-A)" },
   { key: "courseCount", dir: "desc", label: "Số khóa học (Nhiều nhất)" },

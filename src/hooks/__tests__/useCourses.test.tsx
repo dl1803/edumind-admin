@@ -12,6 +12,7 @@ import {
   useSaveCourse,
 } from "../useCourses";
 import { courseService } from "@/services/course.service";
+import { toast } from "@/hooks/useToast";
 
 jest.mock("@/services/course.service", () => ({
   courseService: {
@@ -29,6 +30,8 @@ jest.mock("@/hooks/useToast", () => ({
   toast: {
     success: jest.fn(),
     error: jest.fn(),
+    info: jest.fn(),
+    warning: jest.fn(),
   },
 }));
 
@@ -116,6 +119,7 @@ describe("Course Hooks", () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(courseService.deleteCourse).toHaveBeenCalledWith("crs-1");
+      expect(toast.success).toHaveBeenCalledWith("Đã xóa khóa học thành công!");
     });
   });
 
@@ -138,6 +142,24 @@ describe("Course Hooks", () => {
         title: "Tên mới",
         status: "ARCHIVED",
       });
+      expect(toast.info).toHaveBeenCalledWith("Đã chuyển khóa học sang trạng thái Ẩn thành công!");
+    });
+
+    it("hiển thị toast success khi cập nhật thông tin thông thường", async () => {
+      const updatedCourse = { id: "crs-1", title: "Khóa học React Pro", status: "PUBLISHED" };
+      (courseService.updateCourse as jest.Mock).mockResolvedValueOnce(updatedCourse);
+
+      const { result } = renderHook(() => useUpdateCourse(), {
+        wrapper: createWrapper(),
+      });
+
+      result.current.mutate({
+        id: "crs-1",
+        payload: { title: "Khóa học React Pro" },
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(toast.success).toHaveBeenCalledWith("Đã cập nhật thông tin khóa học thành công!");
     });
   });
 

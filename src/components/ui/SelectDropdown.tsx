@@ -21,6 +21,7 @@ export interface SelectDropdownProps {
   fullWidth?: boolean;
   error?: boolean;
   title?: string;
+  placement?: 'bottom' | 'top';
 }
 
 export function SelectDropdown({
@@ -36,6 +37,7 @@ export function SelectDropdown({
   fullWidth = false,
   error = false,
   title,
+  placement = 'bottom',
 }: SelectDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -129,8 +131,10 @@ export function SelectDropdown({
 
       {isOpen && (
         <div
-          className={`absolute left-0 z-50 mt-1.5 max-h-60 overflow-y-auto rounded-xl bg-white border border-purple-100 shadow-lg shadow-purple-950/10 p-1.5 custom-scrollbar focus:outline-none animate-in fade-in zoom-in-95 duration-100 ${
-            fullWidth ? 'w-full min-w-full' : 'min-w-[160px] w-max max-w-[340px]'
+          className={`absolute left-0 z-50 ${
+            placement === 'top' ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+          } max-h-60 overflow-y-auto rounded-xl bg-white border border-purple-100 shadow-lg shadow-purple-950/10 p-1.5 custom-scrollbar focus:outline-none animate-in fade-in zoom-in-95 duration-100 ${
+            fullWidth ? 'w-full min-w-full' : (size === 'sm' ? 'min-w-[80px]' : 'min-w-[160px]') + ' w-max max-w-[340px]'
           } ${dropdownClassName}`}
           role="listbox"
         >

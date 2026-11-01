@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { DataTableColumn, SortState } from "./types";
 import { useDebounce } from "@/hooks/useDebounce";
 
@@ -14,6 +14,9 @@ export interface UseDataTableStateProps<T> {
   onPageSizeChangeExternal?: (pageSize: number) => void;
   onSearchChangeExternal?: (query: string) => void;
   onFilterChangeExternal?: (key: string, value: string) => void;
+  onResetFiltersExternal?: () => void;
+  initialSearchQuery?: string;
+  initialFilterValues?: Record<string, string>;
 }
 
 function removeVietnameseTones(str: string): string {
@@ -24,6 +27,8 @@ function removeVietnameseTones(str: string): string {
     .replace(/Đ/g, "D")
     .toLowerCase();
 }
+
+const EMPTY_RECORD: Record<string, string> = {};
 
 export function useDataTableState<T>({
   data,
@@ -37,10 +42,32 @@ export function useDataTableState<T>({
   onPageSizeChangeExternal,
   onSearchChangeExternal,
   onFilterChangeExternal,
+  onResetFiltersExternal,
+  initialSearchQuery,
+  initialFilterValues,
 }: UseDataTableStateProps<T>) {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery || "");
   const debouncedSearch = useDebounce(searchQuery, 300);
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [filterValues, setFilterValues] = useState<Record<string, string>>(
+    initialFilterValues || EMPTY_RECORD
+  );
+
+  const filterValuesJson = initialFilterValues ? JSON.stringify(initialFilterValues) : "";
+  useEffect(() => {
+    if (initialFilterValues) {
+      setFilterValues((prev) => {
+        if (JSON.stringify(prev) === filterValuesJson) return prev;
+        return initialFilterValues;
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterValuesJson]);
+
+  useEffect(() => {
+    if (initialSearchQuery !== undefined) {
+      setSearchQuery((prev) => (prev === initialSearchQuery ? prev : initialSearchQuery));
+    }
+  }, [initialSearchQuery]);
   const [sortState, setSortState] = useState<SortState | null>(initialSort);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(pageSizeDefault);
@@ -89,11 +116,15 @@ export function useDataTableState<T>({
   );
 
   const resetFilters = useCallback(() => {
+    Object.keys(filterValues).forEach((key) => {
+      onFilterChangeExternal?.(key, "");
+    });
     setSearchQuery("");
     setFilterValues({});
     setPage(1);
     onSearchChangeExternal?.("");
-  }, [onSearchChangeExternal]);
+    onResetFiltersExternal?.();
+  }, [filterValues, onFilterChangeExternal, onSearchChangeExternal, onResetFiltersExternal]);
 
   const isFiltered = useMemo(() => {
     return searchQuery.trim().length > 0 || Object.keys(filterValues).length > 0;

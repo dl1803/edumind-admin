@@ -23,6 +23,7 @@ export function CourseOutlineReadOnly({
     lesson: ExtendedLesson;
     chapterTitle: string;
     chapterOrder: number;
+    lessonOrder: number;
   } | null>(null);
 
   const [expandedChapterIds, setExpandedChapterIds] = useState<Record<string, boolean>>(() => {
@@ -67,10 +68,12 @@ export function CourseOutlineReadOnly({
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-4">
-      {chapters.map((chapter) => {
+    <>
+      <div className="max-w-5xl mx-auto space-y-4">
+      {chapters.map((chapter, cIdx) => {
         const isExpanded = expandedChapterIds[chapter.id] ?? true;
         const lessonList = chapter.lessons || [];
+        const chapterNumber = cIdx + 1;
 
         return (
           <div
@@ -87,7 +90,7 @@ export function CourseOutlineReadOnly({
                   className="text-slate-300 hover:text-slate-600 shrink-0"
                 />
                 <div className="w-7 h-7 rounded-lg bg-purple-600 text-white font-mono font-bold text-xs flex items-center justify-center shadow-2xs shrink-0">
-                  {chapter.order}
+                  {chapterNumber}
                 </div>
                 <h4 className="text-xs font-bold text-neutral-900">{chapter.title}</h4>
               </div>
@@ -118,18 +121,22 @@ export function CourseOutlineReadOnly({
                   </div>
                 ) : (
                   <div className="divide-y divide-neutral-100 px-4 pb-2 text-xs">
-                    {lessonList.map((lesson) => (
-                      <div
-                        key={lesson.id}
-                        onClick={() =>
-                          setSelectedLesson({
-                            lesson,
-                            chapterTitle: chapter.title,
-                            chapterOrder: chapter.order,
-                          })
-                        }
-                        className="py-3 px-2 hover:bg-neutral-50/70 rounded-xl transition flex items-center justify-between group cursor-pointer"
-                      >
+                    {lessonList.map((lesson, lIdx) => {
+                      const lessonNumber = lIdx + 1;
+
+                      return (
+                        <div
+                          key={lesson.id}
+                          onClick={() =>
+                            setSelectedLesson({
+                              lesson,
+                              chapterTitle: chapter.title,
+                              chapterOrder: chapterNumber,
+                              lessonOrder: lessonNumber,
+                            })
+                          }
+                          className="py-3 px-2 hover:bg-neutral-50/70 rounded-xl transition flex items-center justify-between group cursor-pointer"
+                        >
                         <div className="flex items-center gap-3 min-w-0">
                           <DotsSixVertical
                             size={14}
@@ -172,8 +179,9 @@ export function CourseOutlineReadOnly({
                             }
                           />
                         </div>
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </>
@@ -195,13 +203,16 @@ export function CourseOutlineReadOnly({
         </div>
       )}
 
+      </div>
+
       <CourseLessonDrawer
         open={Boolean(selectedLesson)}
         lesson={selectedLesson?.lesson || null}
         chapterTitle={selectedLesson?.chapterTitle}
         chapterOrder={selectedLesson?.chapterOrder}
+        lessonOrder={selectedLesson?.lessonOrder}
         onClose={() => setSelectedLesson(null)}
       />
-    </div>
+    </>
   );
 }

@@ -45,8 +45,15 @@ export function useCreateCourse() {
       queryClient.invalidateQueries({ queryKey: ["courses-stats"] });
       toast.success("Đã tạo khóa học mới thành công!");
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Không thể tạo khóa học. Vui lòng thử lại.");
+    onError: (error: any) => {
+      const beError = error.response?.data?.error;
+      const details = beError?.details ? JSON.stringify(beError.details) : "";
+      const msg =
+        beError?.message ||
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể tạo khóa học. Vui lòng thử lại.";
+      toast.error(details ? `${msg} (${details})` : msg);
     },
   });
 }
@@ -61,8 +68,18 @@ export function useDeleteCourse() {
       queryClient.invalidateQueries({ queryKey: ["courses-stats"] });
       toast.success("Đã xóa khóa học thành công!");
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Không thể xóa khóa học. Vui lòng thử lại.");
+    onError: (error: any) => {
+      const beError = error.response?.data?.error;
+      if (beError?.code === "COURSE_HAS_ENROLLMENTS" || error.response?.status === 409) {
+        toast.error("Không thể xóa khóa học đã có học viên đăng ký. Vui lòng chọn Ẩn khóa học.");
+        return;
+      }
+      const msg =
+        beError?.message ||
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể xóa khóa học. Vui lòng thử lại.";
+      toast.error(msg);
     },
   });
 }
@@ -73,16 +90,36 @@ export function useUpdateCourse() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: Partial<CoursePayload> }) =>
       courseService.updateCourse(id, payload),
-    onSuccess: (updated) => {
+    onSuccess: (updated, variables) => {
       queryClient.invalidateQueries({ queryKey: ["courses"] });
       queryClient.invalidateQueries({ queryKey: ["courses-stats"] });
       if (updated?.id) {
         queryClient.invalidateQueries({ queryKey: ["course", updated.id] });
       }
-      toast.success("Đã cập nhật thông tin khóa học thành công!");
+      if (variables?.payload?.status === "ARCHIVED") {
+        toast.info("Đã chuyển khóa học sang trạng thái Ẩn thành công!");
+      } else {
+        toast.success("Đã cập nhật thông tin khóa học thành công!");
+      }
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Không thể cập nhật khóa học. Vui lòng thử lại.");
+    onError: (error: any) => {
+      const beError = error.response?.data?.error;
+      const details = beError?.details ? JSON.stringify(beError.details) : "";
+      if (
+        beError?.code === "COURSE_NOT_READY_TO_PUBLISH" ||
+        error.response?.status === 409
+      ) {
+        toast.error(
+          "Khóa học chưa đủ điều kiện xuất bản: Cần tối thiểu 01 chương, bài giảng video hoàn tất và giảng viên phụ trách."
+        );
+        return;
+      }
+      const msg =
+        beError?.message ||
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể cập nhật khóa học. Vui lòng thử lại.";
+      toast.error(details ? `${msg} (${details})` : msg);
     },
   });
 }

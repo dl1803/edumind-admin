@@ -218,8 +218,9 @@ describe("Course Detail UI Components (A-05)", () => {
       };
       render(<CoursePublishChecklist course={courseNoChap} />);
 
-      expect(screen.getByText("2/3 Điều kiện Đạt")).toBeInTheDocument();
+      expect(screen.getByText("1/3 Điều kiện Đạt")).toBeInTheDocument();
       expect(screen.getByText("[!] Chưa có chương/bài")).toBeInTheDocument();
+      expect(screen.getByText("[!] Chưa có video bài giảng")).toBeInTheDocument();
     });
   });
 

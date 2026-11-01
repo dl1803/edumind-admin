@@ -46,8 +46,10 @@ export interface DataTableProps<T> {
   skeletonRows?: number;
   searchable?: boolean;
   searchPlaceholder?: string;
+  searchQuery?: string;
   searchKeys?: (keyof T)[];
   filters?: DataTableFilter[];
+  filterValues?: Record<string, string>;
   sort?: SortState | null;
   onSortChange?: (sort: SortState | null) => void;
   page?: number;
@@ -58,6 +60,7 @@ export interface DataTableProps<T> {
   onPageSizeChange?: (pageSize: number) => void;
   onSearchChange?: (query: string) => void;
   onFilterChange?: (key: string, value: string) => void;
+  onResetFilters?: () => void;
   entityName?: string;
   onRowClick?: (row: T) => void;
   emptyState?: DataTableEmptyConfig;

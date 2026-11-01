@@ -22,7 +22,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { DotsSixVertical, Trash, Plus, X } from "@phosphor-icons/react";
+import { DotsSixVertical, Trash, Plus, X, PencilSimple } from "@phosphor-icons/react";
 
 interface SyllabusEditorProps {
   chapters: Chapter[];
@@ -31,15 +31,25 @@ interface SyllabusEditorProps {
 
 interface SortableLessonItemProps {
   lesson: Lesson;
+  chapterIndex: number;
   index: number;
+  onUpdateTitle: (title: string) => void;
   onDelete: () => void;
 }
 
 const SortableLessonItem: React.FC<SortableLessonItemProps> = ({
   lesson,
+  chapterIndex,
   index,
+  onUpdateTitle,
   onDelete,
 }) => {
+  const [title, setTitle] = useState(lesson.title);
+
+  React.useEffect(() => {
+    setTitle(lesson.title);
+  }, [lesson.title]);
+
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: lesson.id,
   });
@@ -53,22 +63,35 @@ const SortableLessonItem: React.FC<SortableLessonItemProps> = ({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center justify-between p-2 rounded-lg bg-neutral-50 border border-neutral-100 text-xs group"
+      className="flex items-center justify-between p-2 rounded-xl bg-neutral-50/80 border border-neutral-100 text-xs group gap-2"
     >
-      <div className="flex items-center gap-2 flex-1">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
         <button
           type="button"
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing text-neutral-400 hover:text-purple-600 p-0.5"
+          className="cursor-grab active:cursor-grabbing text-neutral-400 hover:text-purple-600 p-0.5 shrink-0"
           title="Kéo thả sắp xếp thứ tự bài giảng"
         >
           <DotsSixVertical size={14} />
         </button>
-        <span className="text-neutral-400 font-mono">{index + 1}.</span>
-        <span className="font-medium text-neutral-800">{lesson.title}</span>
+        <span className="text-neutral-400 font-mono text-[11px] shrink-0 font-medium">
+          {chapterIndex + 1}.{index + 1}
+        </span>
+        <div className="flex-1 flex items-center gap-1.5 bg-white hover:bg-neutral-100/50 focus-within:bg-white focus-within:ring-1 focus-within:ring-purple-500/20 focus-within:border-purple-400 border border-neutral-200/60 rounded-lg px-2.5 py-1 transition min-w-0">
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              onUpdateTitle(e.target.value);
+            }}
+            className="w-full text-xs font-medium text-neutral-800 bg-transparent focus:outline-none"
+            placeholder="Nhập tên bài giảng..."
+          />
+        </div>
         {lesson.isPreview && (
-          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
+          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 shrink-0">
             Học thử
           </span>
         )}
@@ -76,7 +99,7 @@ const SortableLessonItem: React.FC<SortableLessonItemProps> = ({
       <button
         type="button"
         onClick={onDelete}
-        className="text-neutral-400 hover:text-red-500 text-xs p-1"
+        className="text-neutral-400 hover:text-red-500 text-xs p-1 shrink-0"
         title="Xóa bài giảng"
       >
         <X size={14} />
@@ -91,6 +114,7 @@ interface SortableChapterItemProps {
   onUpdateTitle: (title: string) => void;
   onDeleteChapter: () => void;
   onAddLesson: (title: string, isPreview: boolean) => void;
+  onUpdateLessonTitle: (lessonIndex: number, title: string) => void;
   onDeleteLesson: (lessonId: string) => void;
 }
 
@@ -100,8 +124,15 @@ const SortableChapterItem: React.FC<SortableChapterItemProps> = ({
   onUpdateTitle,
   onDeleteChapter,
   onAddLesson,
+  onUpdateLessonTitle,
   onDeleteLesson,
 }) => {
+  const [title, setTitle] = useState(chapter.title);
+
+  React.useEffect(() => {
+    setTitle(chapter.title);
+  }, [chapter.title]);
+
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: chapter.id,
   });
@@ -127,34 +158,40 @@ const SortableChapterItem: React.FC<SortableChapterItemProps> = ({
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-white rounded-xl border border-purple-100 p-4 shadow-2xs space-y-3"
+      className="bg-white rounded-2xl border border-purple-100 p-4 shadow-2xs space-y-3"
     >
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 flex-1">
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
           <button
             type="button"
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing text-neutral-400 hover:text-purple-600 p-1"
+            className="cursor-grab active:cursor-grabbing text-neutral-400 hover:text-purple-600 p-1 shrink-0"
             title="Kéo thả sắp xếp thứ tự chương"
           >
             <DotsSixVertical size={18} />
           </button>
-          <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-100 shrink-0">
+          <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-100 shrink-0">
             Chương {chapterIndex + 1}
           </span>
-          <input
-            type="text"
-            value={chapter.title}
-            onChange={(e) => onUpdateTitle(e.target.value)}
-            className="flex-1 text-xs font-bold text-neutral-900 bg-transparent border-b border-transparent hover:border-neutral-200 focus:border-purple-600 focus:outline-none px-1 py-0.5 transition"
-            placeholder="Nhập tiêu đề chương học..."
-          />
+          <div className="flex-1 flex items-center gap-2 bg-neutral-50 hover:bg-neutral-100/70 focus-within:bg-white focus-within:ring-2 focus-within:ring-purple-500/20 focus-within:border-purple-600 border border-neutral-200 rounded-xl px-3 py-1.5 transition min-w-0">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                onUpdateTitle(e.target.value);
+              }}
+              className="w-full text-xs font-bold text-neutral-900 bg-transparent focus:outline-none"
+              placeholder="Nhập tiêu đề chương học..."
+            />
+            <PencilSimple size={14} className="text-neutral-400 shrink-0 pointer-events-none" />
+          </div>
         </div>
         <button
           type="button"
           onClick={onDeleteChapter}
-          className="text-neutral-400 hover:text-red-600 p-1 rounded transition"
+          className="text-neutral-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition shrink-0"
           title="Xóa chương này"
         >
           <Trash size={16} />
@@ -174,7 +211,9 @@ const SortableChapterItem: React.FC<SortableChapterItemProps> = ({
                 <SortableLessonItem
                   key={lesson.id}
                   lesson={lesson}
+                  chapterIndex={chapterIndex}
                   index={lIdx}
+                  onUpdateTitle={(newTitle) => onUpdateLessonTitle(lIdx, newTitle)}
                   onDelete={() => onDeleteLesson(lesson.id)}
                 />
               ))}
@@ -274,7 +313,7 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({ chapters, onChan
   const handleAddChapter = () => {
     const newChap: Chapter = {
       id: `chap-${Date.now()}`,
-      title: `Chương ${chapters.length + 1}: Tiêu đề chương mới`,
+      title: "Tiêu đề chương mới",
       order: chapters.length + 1,
       lessons: [],
     };
@@ -282,8 +321,26 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({ chapters, onChan
   };
 
   const handleUpdateChapterTitle = (index: number, newTitle: string) => {
-    const updated = [...chapters];
-    updated[index].title = newTitle;
+    const updated = chapters.map((c, i) =>
+      i === index ? { ...c, title: newTitle } : c
+    );
+    onChange(updated);
+  };
+
+  const handleUpdateLessonTitle = (
+    chapterIndex: number,
+    lessonIndex: number,
+    newTitle: string
+  ) => {
+    const updated = chapters.map((c, cIdx) => {
+      if (cIdx !== chapterIndex) return c;
+      return {
+        ...c,
+        lessons: c.lessons.map((l, lIdx) =>
+          lIdx === lessonIndex ? { ...l, title: newTitle } : l
+        ),
+      };
+    });
     onChange(updated);
   };
 
@@ -295,20 +352,30 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({ chapters, onChan
   };
 
   const handleAddLesson = (chapterIndex: number, title: string, isPreview: boolean) => {
-    const updated = [...chapters];
-    const newLesson: Lesson = {
-      id: `les-${Date.now()}`,
-      title,
-      isPreview,
-      order: updated[chapterIndex].lessons.length + 1,
-    };
-    updated[chapterIndex].lessons = [...updated[chapterIndex].lessons, newLesson];
+    const updated = chapters.map((c, cIdx) => {
+      if (cIdx !== chapterIndex) return c;
+      const newLesson: Lesson = {
+        id: `les-${Date.now()}`,
+        title,
+        isPreview,
+        order: c.lessons.length + 1,
+      };
+      return {
+        ...c,
+        lessons: [...c.lessons, newLesson],
+      };
+    });
     onChange(updated);
   };
 
   const handleDeleteLesson = (chapterIndex: number, lessonId: string) => {
-    const updated = [...chapters];
-    updated[chapterIndex].lessons = updated[chapterIndex].lessons.filter((l) => l.id !== lessonId);
+    const updated = chapters.map((c, cIdx) => {
+      if (cIdx !== chapterIndex) return c;
+      return {
+        ...c,
+        lessons: c.lessons.filter((l) => l.id !== lessonId),
+      };
+    });
     onChange(updated);
   };
 
@@ -359,6 +426,9 @@ export const SyllabusEditor: React.FC<SyllabusEditorProps> = ({ chapters, onChan
                   onUpdateTitle={(title) => handleUpdateChapterTitle(index, title)}
                   onDeleteChapter={() => setChapterToDelete(index)}
                   onAddLesson={(title, isPrev) => handleAddLesson(index, title, isPrev)}
+                  onUpdateLessonTitle={(lessonIndex, title) =>
+                    handleUpdateLessonTitle(index, lessonIndex, title)
+                  }
                   onDeleteLesson={(lessonId) => handleDeleteLesson(index, lessonId)}
                 />
               ))}
