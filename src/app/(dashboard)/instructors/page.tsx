@@ -20,7 +20,6 @@ import {
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/data-table/DataTable";
 import { DataTableColumn } from "@/components/data-table/types";
-import { SelectDropdown } from "@/components/ui/SelectDropdown";
 import { TopBarContent } from "@/context/TopBarContext";
 import { Instructor, InstructorListParams, InstructorStatus } from "@/types/instructor.types";
 import {

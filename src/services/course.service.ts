@@ -6,7 +6,6 @@ import {
   Category,
   InstructorOption,
   Chapter,
-  Lesson,
 } from "@/types/course.types";
 import { PaginatedResponse } from "@/types/api.types";
 import {
