@@ -32,75 +32,67 @@ export const instructorService = {
       return mockGetInstructors(params);
     }
 
-    try {
-      const queryParams: Record<string, string | number> = {
-        page: params?.page || 1,
-        page_size: params?.pageSize || 10,
-      };
+    const queryParams: Record<string, string | number> = {
+      page: params?.page || 1,
+      page_size: params?.pageSize || 10,
+    };
 
-      if (params?.search) {
-        queryParams.search = params.search;
-      }
-      if (params?.status && params.status !== "all") {
-        queryParams.status = params.status;
-      }
-
-      const response = await apiClient.get<BackendPaginatedResponse<any> | PaginatedResponse<any>>(
-        "/admin/instructors",
-        { params: queryParams }
-      );
-
-      const resData = response.data;
-      const rawItems: any[] = Array.isArray(resData)
-        ? resData
-        : "data" in resData && Array.isArray(resData.data)
-        ? resData.data
-        : "items" in resData && Array.isArray((resData as any).items)
-        ? (resData as any).items
-        : [];
-
-      let items = rawItems.map(mapBackendInstructorToInstructor);
-
-      if (params?.specialty) {
-        const s = params.specialty.toLowerCase();
-        items = items.filter((item) => {
-          const spec = (item.specialty || "").toLowerCase();
-          const deg = (item.degree || "").toLowerCase();
-          const full = `${spec} ${deg}`.toLowerCase();
-          if (s === "cs") return full.includes("khoa học máy tính") || full.includes("máy tính") || full.includes("computer science");
-          if (s === "se") return full.includes("phần mềm") || full.includes("software");
-          if (s === "ai") return full.includes("ai") || full.includes("dữ liệu") || full.includes("trí tuệ");
-          if (s === "is") return full.includes("an toàn") || full.includes("an ninh") || full.includes("attt") || full.includes("bảo mật");
-          if (s === "architect") return full.includes("architect");
-          if (s === "lecturer") return full.includes("lecturer");
-          return full.includes(s);
-        });
-      }
-
-      return {
-        items,
-        total: ("total" in resData ? resData.total : rawItems.length) || 0,
-        page: ("page" in resData ? resData.page : params?.page) || 1,
-        pageSize:
-          ("page_size" in resData
-            ? (resData as any).page_size
-            : "pageSize" in resData
-            ? (resData as any).pageSize
-            : params?.pageSize) || 10,
-        totalPages:
-          ("total_pages" in resData
-            ? (resData as any).total_pages
-            : "totalPages" in resData
-            ? (resData as any).totalPages
-            : 1) || 1,
-      };
-    } catch (error) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn("API instructors gặp sự cố, tự động fallback sang mock data:", error);
-        return mockGetInstructors(params);
-      }
-      throw error;
+    if (params?.search) {
+      queryParams.search = params.search;
     }
+    if (params?.status && params.status !== "all") {
+      queryParams.status = params.status;
+    }
+
+    const response = await apiClient.get<BackendPaginatedResponse<any> | PaginatedResponse<any>>(
+      "/admin/instructors",
+      { params: queryParams }
+    );
+
+    const resData = response.data;
+    const rawItems: any[] = Array.isArray(resData)
+      ? resData
+      : "data" in resData && Array.isArray(resData.data)
+      ? resData.data
+      : "items" in resData && Array.isArray((resData as any).items)
+      ? (resData as any).items
+      : [];
+
+    let items = rawItems.map(mapBackendInstructorToInstructor);
+
+    if (params?.specialty) {
+      const s = params.specialty.toLowerCase();
+      items = items.filter((item) => {
+        const spec = (item.specialty || "").toLowerCase();
+        const deg = (item.degree || "").toLowerCase();
+        const full = `${spec} ${deg}`.toLowerCase();
+        if (s === "cs") return full.includes("khoa học máy tính") || full.includes("máy tính") || full.includes("computer science");
+        if (s === "se") return full.includes("phần mềm") || full.includes("software");
+        if (s === "ai") return full.includes("ai") || full.includes("dữ liệu") || full.includes("trí tuệ");
+        if (s === "is") return full.includes("an toàn") || full.includes("an ninh") || full.includes("attt") || full.includes("bảo mật");
+        if (s === "architect") return full.includes("architect");
+        if (s === "lecturer") return full.includes("lecturer");
+        return full.includes(s);
+      });
+    }
+
+    return {
+      items,
+      total: ("total" in resData ? resData.total : rawItems.length) || 0,
+      page: ("page" in resData ? resData.page : params?.page) || 1,
+      pageSize:
+        ("page_size" in resData
+          ? (resData as any).page_size
+          : "pageSize" in resData
+          ? (resData as any).pageSize
+          : params?.pageSize) || 10,
+      totalPages:
+        ("total_pages" in resData
+          ? (resData as any).total_pages
+          : "totalPages" in resData
+          ? (resData as any).totalPages
+          : 1) || 1,
+    };
   },
 
   async getInstructorStats(): Promise<InstructorStats> {
@@ -108,19 +100,15 @@ export const instructorService = {
       return mockGetInstructorStats();
     }
 
-    try {
-      const res = await this.getInstructors({ page: 1, pageSize: 100 });
-      const items = res.items;
+    const res = await this.getInstructors({ page: 1, pageSize: 100 });
+    const items = res.items;
 
-      return {
-        total: res.total,
-        activeCount: items.filter((i) => i.isActive).length,
-        suspendedCount: items.filter((i) => !i.isActive).length,
-        totalCourses: items.reduce((sum, i) => sum + i.courseCount, 0),
-      };
-    } catch {
-      return mockGetInstructorStats();
-    }
+    return {
+      total: res.total,
+      activeCount: items.filter((i) => i.isActive).length,
+      suspendedCount: items.filter((i) => !i.isActive).length,
+      totalCourses: items.reduce((sum, i) => sum + i.courseCount, 0),
+    };
   },
 
   async deleteInstructor(id: string): Promise<DeleteInstructorResponse> {
@@ -133,22 +121,10 @@ export const instructorService = {
       };
     }
 
-    try {
-      const response = await apiClient.delete<DeleteInstructorResponse>(
-        `/admin/instructors/${id}`
-      );
-      return response.data;
-    } catch (error: any) {
-      if (process.env.NODE_ENV === "development" && (!error.response || error.response.status === 404)) {
-        const res = await mockDeleteInstructor(id);
-        return {
-          message: res.message,
-          instructor_id: id,
-          deleted: res.success,
-        };
-      }
-      throw error;
-    }
+    const response = await apiClient.delete<DeleteInstructorResponse>(
+      `/admin/instructors/${id}`
+    );
+    return response.data;
   },
 
   async updateInstructorStatus(id: string, isActive: boolean): Promise<Instructor> {
@@ -156,18 +132,11 @@ export const instructorService = {
       return mockUpdateInstructorStatus(id, isActive);
     }
 
-    try {
-      const response = await apiClient.patch<any>(`/admin/instructors/${id}/status`, {
-        is_active: isActive,
-      });
-      const raw = "data" in response.data ? response.data.data : response.data;
-      return mapBackendInstructorToInstructor(raw);
-    } catch (error) {
-      if (process.env.NODE_ENV === "development") {
-        return mockUpdateInstructorStatus(id, isActive);
-      }
-      throw error;
-    }
+    const response = await apiClient.patch<any>(`/admin/instructors/${id}/status`, {
+      is_active: isActive,
+    });
+    const raw = "data" in response.data ? response.data.data : response.data;
+    return mapBackendInstructorToInstructor(raw);
   },
 };
 

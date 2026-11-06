@@ -1,5 +1,3 @@
-import { PaginatedResponse } from "./api.types";
-
 export type InstructorStatus = "active" | "suspended" | "all";
 
 export interface BackendInstructorItem {
