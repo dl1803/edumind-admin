@@ -87,3 +87,14 @@ export interface BackendCancelUploadResponse {
   message: string;
   overall_status: string;
 }
+
+export interface PendingUpload {
+  videoId: string;
+  uploadId: string;
+  courseId: string;
+  lessonId: string;
+  fileName: string;
+  fileSize: number;
+  parts: UploadedPart[];
+}
+

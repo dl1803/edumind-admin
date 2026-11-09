@@ -11,4 +11,5 @@ export const STORAGE_KEYS = {
   ACCESS_TOKEN: "edumind_admin_access_token",
   REFRESH_TOKEN: "edumind_admin_refresh_token",
   USER_INFO: "edumind_admin_user",
+  PENDING_VIDEO_UPLOAD: "edumind_admin_pending_video_upload",
 };
