@@ -104,8 +104,11 @@ export type VideoListSort = "newest" | "oldest";
 
 export interface VideoListItem {
   videoId: string;
+  videoTitle?: string;
   lessonId: string;
   lessonTitle: string;
+  courseTitle?: string;
+  fileSizeMb?: number;
   overallStatus: VideoOverallStatus;
   thumbnailUrl: string | null;
   durationSec: number | null;
@@ -113,6 +116,8 @@ export interface VideoListItem {
 }
 
 export interface VideoListParams {
+  search?: string;
+  courseTitle?: string;
   status?: VideoOverallStatus;
   sort?: VideoListSort;
   page?: number;
