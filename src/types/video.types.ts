@@ -98,3 +98,24 @@ export interface PendingUpload {
   parts: UploadedPart[];
 }
 
+export type VideoOverallStatus = "uploading" | "uploaded" | "processing" | "completed" | "failed";
+
+export type VideoListSort = "newest" | "oldest";
+
+export interface VideoListItem {
+  videoId: string;
+  lessonId: string;
+  lessonTitle: string;
+  overallStatus: VideoOverallStatus;
+  thumbnailUrl: string | null;
+  durationSec: number | null;
+  uploadedAt: string;
+}
+
+export interface VideoListParams {
+  status?: VideoOverallStatus;
+  sort?: VideoListSort;
+  page?: number;
+  limit?: number;
+}
+
