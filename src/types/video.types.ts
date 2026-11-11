@@ -126,3 +126,28 @@ export interface VideoListParams {
   limit?: number;
 }
 
+export type PipelineStepName = "upload" | "transcode" | "transcribe" | "index";
+
+export type PipelineStepStatus = "pending" | "processing" | "completed" | "failed";
+
+export interface PipelineStep {
+  step: PipelineStepName;
+  status: PipelineStepStatus;
+  progress: number | null;
+  errorMessage: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+}
+
+export interface VideoPipeline {
+  videoId: string;
+  lessonId: string;
+  lessonTitle: string;
+  steps: PipelineStep[];
+  overallStatus: VideoOverallStatus;
+  errorMessage: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+}
+
+
