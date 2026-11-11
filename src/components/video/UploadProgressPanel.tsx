@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { FilmStrip } from "@phosphor-icons/react";
+import { Check, FilmStrip } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { cn, formatFileSize } from "@/lib/utils";
-import { UploadPartStatus, UploadProgress, UploadStatus } from "@/types/video.types";
+import { UploadProgress, UploadStatus } from "@/types/video.types";
 
 interface UploadProgressPanelProps {
   status: UploadStatus;
@@ -27,20 +27,6 @@ const STATUS_LABEL: Partial<Record<UploadStatus, string>> = {
 const STATUS_COLOR: Partial<Record<UploadStatus, string>> = {
   UPLOADING: "text-purple-700",
   PAUSED: "text-neutral-600",
-  FAILED: "text-error-600",
-};
-
-const PART_LABEL: Record<UploadPartStatus, string> = {
-  PENDING: "Chờ",
-  UPLOADING: "Đang tải",
-  COMPLETED: "Xong",
-  FAILED: "Lỗi",
-};
-
-const PART_COLOR: Record<UploadPartStatus, string> = {
-  PENDING: "text-neutral-500",
-  UPLOADING: "text-purple-700",
-  COMPLETED: "text-emerald-600",
   FAILED: "text-error-600",
 };
 
@@ -102,13 +88,44 @@ export function UploadProgressPanel({
         </div>
 
         {progress && progress.parts.length > 0 && (
-          <div className="grid max-h-32 grid-cols-2 gap-x-4 gap-y-1 overflow-y-auto text-[10px] pt-1.5 border-t border-neutral-200/60 sm:grid-cols-4">
-            {progress.parts.map((part) => (
-              <div key={part.partNumber} className="flex justify-between gap-2">
-                <span className="text-neutral-600">Phần {part.partNumber}</span>
-                <span className={cn("font-medium", PART_COLOR[part.status])}>{PART_LABEL[part.status]}</span>
-              </div>
-            ))}
+          <div className="grid max-h-36 grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-neutral-200/60 overflow-y-auto">
+            {progress.parts.map((part) => {
+              const isCompleted = part.status === "COMPLETED";
+              const isUploading = part.status === "UPLOADING";
+              const isFailed = part.status === "FAILED";
+
+              return (
+                <div
+                  key={part.partNumber}
+                  className={cn(
+                    "flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-[11px] transition-all",
+                    isCompleted && "bg-emerald-50/70 border-emerald-200 text-emerald-800",
+                    isUploading && "bg-purple-50/70 border-purple-200 text-purple-800 font-medium",
+                    isFailed && "bg-red-50/70 border-red-200 text-red-800 font-medium",
+                    part.status === "PENDING" && "bg-neutral-100/60 border-neutral-200 text-neutral-400"
+                  )}
+                >
+                  <span className="font-medium text-neutral-700">Phần {part.partNumber}</span>
+                  {isCompleted && (
+                    <span className="inline-flex items-center gap-1 font-semibold text-emerald-600">
+                      <Check size={12} weight="bold" />
+                      <span>Xong</span>
+                    </span>
+                  )}
+                  {isUploading && (
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-purple-700">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-purple-600" />
+                      </span>
+                      <span>Đang tải</span>
+                    </span>
+                  )}
+                  {isFailed && <span className="font-semibold text-red-600">Lỗi</span>}
+                  {part.status === "PENDING" && <span className="text-neutral-300 text-[10px]">—</span>}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -119,24 +136,40 @@ export function UploadProgressPanel({
         </p>
       )}
 
-      <div className="flex items-center justify-end gap-2">
-        <Button variant="ghost" size="sm" onClick={() => setConfirmOpen(true)}>
+      <div className="flex items-center justify-end gap-2 pt-1">
+        <button
+          type="button"
+          onClick={() => setConfirmOpen(true)}
+          className="px-3.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-600 font-medium hover:bg-neutral-100 transition text-xs cursor-pointer"
+        >
           Hủy upload
-        </Button>
+        </button>
         {status === "UPLOADING" && (
-          <Button variant="outlined" size="sm" onClick={onPause}>
+          <button
+            type="button"
+            onClick={onPause}
+            className="px-3.5 py-1.5 rounded-lg border border-purple-600 text-purple-700 font-medium hover:bg-purple-50 transition text-xs cursor-pointer"
+          >
             Tạm dừng
-          </Button>
+          </button>
         )}
         {status === "PAUSED" && (
-          <Button size="sm" onClick={onResume}>
+          <button
+            type="button"
+            onClick={onResume}
+            className="px-4 py-1.5 rounded-lg text-white grad-nebula font-semibold shadow-nebula hover:opacity-95 transition text-xs cursor-pointer"
+          >
             Tiếp tục
-          </Button>
+          </button>
         )}
         {status === "FAILED" && (
-          <Button size="sm" onClick={onRetry}>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="px-4 py-1.5 rounded-lg text-white grad-nebula font-semibold shadow-nebula hover:opacity-95 transition text-xs cursor-pointer"
+          >
             Thử lại
-          </Button>
+          </button>
         )}
       </div>
 

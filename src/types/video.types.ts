@@ -95,6 +95,34 @@ export interface PendingUpload {
   lessonId: string;
   fileName: string;
   fileSize: number;
+  partSize?: number;
+  totalParts?: number;
   parts: UploadedPart[];
+}
+
+export type VideoOverallStatus = "uploading" | "uploaded" | "processing" | "completed" | "failed";
+
+export type VideoListSort = "newest" | "oldest";
+
+export interface VideoListItem {
+  videoId: string;
+  videoTitle?: string;
+  lessonId: string;
+  lessonTitle: string;
+  courseTitle?: string;
+  fileSizeMb?: number;
+  overallStatus: VideoOverallStatus;
+  thumbnailUrl: string | null;
+  durationSec: number | null;
+  uploadedAt: string;
+}
+
+export interface VideoListParams {
+  search?: string;
+  courseTitle?: string;
+  status?: VideoOverallStatus;
+  sort?: VideoListSort;
+  page?: number;
+  limit?: number;
 }
 

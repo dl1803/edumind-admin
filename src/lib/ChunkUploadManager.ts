@@ -117,9 +117,12 @@ export class ChunkUploadManager {
     this.onPartCompleted = options.onPartCompleted;
 
     const serverParts = new Set(options.partsUploaded ?? []);
+    const hasServerParts = Boolean(options.partsUploaded && options.partsUploaded.length > 0);
     for (const part of options.knownParts ?? []) {
-      if (serverParts.has(part.partNumber) && part.partNumber >= 1 && part.partNumber <= totalParts) {
-        this.completed.set(part.partNumber, part.etag);
+      if (part.partNumber >= 1 && part.partNumber <= totalParts) {
+        if (!hasServerParts || serverParts.has(part.partNumber)) {
+          this.completed.set(part.partNumber, part.etag);
+        }
       }
     }
 
@@ -145,7 +148,7 @@ export class ChunkUploadManager {
   }
 
   resume(): Promise<void> {
-    if (this.status !== "PAUSED") return Promise.resolve();
+    if (this.status !== "PAUSED" && this.status !== "FAILED") return Promise.resolve();
     return this.run();
   }
 

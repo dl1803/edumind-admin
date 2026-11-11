@@ -41,4 +41,23 @@ export function formatFileSize(bytes: number): string {
   return `${text} ${units[exponent]}`;
 }
 
+export function formatDuration(totalSeconds: number | null | undefined): string {
+  if (totalSeconds === null || totalSeconds === undefined || !Number.isFinite(totalSeconds) || totalSeconds < 0) {
+    return "—";
+  }
+  const rounded = Math.floor(totalSeconds);
+  const minutes = String(Math.floor(rounded / 60)).padStart(2, "0");
+  const seconds = String(rounded % 60).padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+export function formatDateTime(dateString?: string): string {
+  if (!dateString) return "—";
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return dateString;
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  return `${formatDate(dateString)} ${hours}:${minutes}`;
+}
+
 

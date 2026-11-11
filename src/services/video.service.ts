@@ -1,4 +1,6 @@
 import { apiClient } from "./api-client";
+import { PaginatedResponse } from "@/types/api.types";
+import { mockGetVideos } from "./mock/videoList.mock";
 import {
   BackendCancelUploadResponse,
   BackendCompleteUploadResponse,
@@ -11,6 +13,8 @@ import {
   InitUploadResponse,
   PartUrlRequest,
   PartUrlResponse,
+  VideoListItem,
+  VideoListParams,
 } from "@/types/video.types";
 
 function unwrap<T>(body: unknown, requiredKey: string): T {
@@ -62,5 +66,9 @@ export const videoService = {
     const response = await apiClient.put<unknown>(`/admin/pipeline/${videoId}/cancel`);
     const raw = unwrap<BackendCancelUploadResponse>(response.data, "overall_status");
     return { message: raw.message, overallStatus: raw.overall_status };
+  },
+
+  async getVideos(params?: VideoListParams): Promise<PaginatedResponse<VideoListItem>> {
+    return mockGetVideos(params);
   },
 };

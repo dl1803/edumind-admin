@@ -299,6 +299,36 @@ describe("ChunkUploadManager", () => {
     });
   });
 
+  it("thử lại sau khi lỗi (FAILED): resume tiếp tục tải các phần chưa xong", async () => {
+    let attempts = 0;
+    FakeXhr.handler = (xhr) => {
+      attempts += 1;
+      if (attempts === 1) {
+        xhr.respond(200, '"etag-1"');
+      } else {
+        xhr.networkError();
+      }
+    };
+    skipBackoff();
+    const manager = createManager(20, 10, { concurrency: 1 });
+
+    await manager.start().catch((e: unknown) => e);
+    expect(manager.getStatus()).toBe("FAILED");
+
+    FakeXhr.handler = acceptPart;
+    await manager.resume();
+
+    expect(manager.getStatus()).toBe("COMPLETED");
+    expect(videoService.completeUpload).toHaveBeenCalledWith({
+      videoId: "video-1",
+      uploadId: "upload-1",
+      parts: [
+        { partNumber: 1, etag: '"etag-1"' },
+        { partNumber: 2, etag: '"etag-2"' },
+      ],
+    });
+  });
+
   it("kế hoạch chia phần không khớp dung lượng file: ném INVALID_PART_PLAN", () => {
     expect(() => createManager(25, 10, { totalParts: 2 })).toThrow(UploadError);
   });
