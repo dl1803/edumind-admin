@@ -95,6 +95,8 @@ export interface PendingUpload {
   lessonId: string;
   fileName: string;
   fileSize: number;
+  partSize?: number;
+  totalParts?: number;
   parts: UploadedPart[];
 }
 

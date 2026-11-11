@@ -93,65 +93,97 @@ export function useVideoUpload() {
       startingRef.current = true;
       dispatch({ type: "STARTING" });
 
-      let init: InitUploadResponse;
-      try {
-        init = await videoService.initUpload({
+      const stored = loadPendingUpload();
+      const isResumingMatching =
+        stored !== null &&
+        stored.fileName === file.name &&
+        stored.fileSize === file.size &&
+        stored.lessonId === lessonId &&
+        Boolean(stored.videoId) &&
+        Boolean(stored.uploadId);
+
+      let videoId = "";
+      let uploadId = "";
+      let partSize = 52428800;
+      let totalParts = 1;
+      let partsUploaded: number[] = [];
+      let knownParts = stored && stored.uploadId ? stored.parts : [];
+
+      if (isResumingMatching && stored) {
+        videoId = stored.videoId;
+        uploadId = stored.uploadId;
+        partSize = stored.partSize ?? 52428800;
+        totalParts = stored.totalParts ?? Math.ceil(file.size / partSize);
+        partsUploaded = stored.parts.map((p) => p.partNumber);
+        knownParts = stored.parts;
+      } else {
+        let init: InitUploadResponse;
+        try {
+          init = await videoService.initUpload({
+            lessonId,
+            fileName: file.name,
+            fileSize: file.size,
+            contentType: resolveContentType(file),
+          });
+        } catch (error) {
+          startingRef.current = false;
+          const { code, message } = readBackendError(error);
+          if (code === "INVALID_FILE_FORMAT") {
+            dispatch({ type: "FAILED", kind: "FILE", message: INVALID_FORMAT_MESSAGE });
+          } else if (code === "FILE_TOO_LARGE") {
+            dispatch({ type: "FAILED", kind: "FILE", message: FILE_TOO_LARGE_MESSAGE });
+          } else if (code === "UPLOAD_IN_PROGRESS") {
+            dispatch({
+              type: "FAILED",
+              kind: "CONFLICT",
+              message: "Video của bài giảng này đang trong tiến trình xử lý. Vui lòng chờ xử lý xong trước khi tải video mới.",
+            });
+          } else if (code === "LESSON_NOT_FOUND") {
+            dispatch({ type: "FAILED", kind: "GENERAL", message: "Bài giảng không tồn tại hoặc đã bị xóa" });
+            toast.error("Bài giảng không tồn tại hoặc đã bị xóa");
+          } else {
+            const fallback = message ?? "Không thể khởi tạo tải lên";
+            dispatch({ type: "FAILED", kind: "GENERAL", message: fallback });
+            toast.error(fallback);
+          }
+          return;
+        }
+
+        videoId = init.videoId;
+        uploadId = init.uploadId;
+        partSize = init.partSize;
+        totalParts = init.totalParts;
+        partsUploaded = init.partsUploaded ?? [];
+        knownParts = stored && stored.uploadId === init.uploadId ? stored.parts : [];
+
+        savePendingUpload({
+          videoId,
+          uploadId,
+          courseId,
           lessonId,
           fileName: file.name,
           fileSize: file.size,
-          contentType: resolveContentType(file),
+          partSize,
+          totalParts,
+          parts: knownParts,
         });
-      } catch (error) {
-        startingRef.current = false;
-        const { code, message } = readBackendError(error);
-        if (code === "INVALID_FILE_FORMAT") {
-          dispatch({ type: "FAILED", kind: "FILE", message: INVALID_FORMAT_MESSAGE });
-        } else if (code === "FILE_TOO_LARGE") {
-          dispatch({ type: "FAILED", kind: "FILE", message: FILE_TOO_LARGE_MESSAGE });
-        } else if (code === "UPLOAD_IN_PROGRESS") {
-          dispatch({
-            type: "FAILED",
-            kind: "CONFLICT",
-            message: "Video của bài giảng này đang trong tiến trình xử lý. Vui lòng chờ xử lý xong trước khi tải video mới.",
-          });
-        } else if (code === "LESSON_NOT_FOUND") {
-          dispatch({ type: "FAILED", kind: "GENERAL", message: "Bài giảng không tồn tại hoặc đã bị xóa" });
-          toast.error("Bài giảng không tồn tại hoặc đã bị xóa");
-        } else {
-          const fallback = message ?? "Không thể khởi tạo tải lên";
-          dispatch({ type: "FAILED", kind: "GENERAL", message: fallback });
-          toast.error(fallback);
-        }
-        return;
       }
-
-      const stored = loadPendingUpload();
-      const knownParts = stored && stored.uploadId === init.uploadId ? stored.parts : [];
-      savePendingUpload({
-        videoId: init.videoId,
-        uploadId: init.uploadId,
-        courseId,
-        lessonId,
-        fileName: file.name,
-        fileSize: file.size,
-        parts: knownParts,
-      });
 
       let manager: ChunkUploadManager;
       try {
         manager = new ChunkUploadManager({
           file,
-          videoId: init.videoId,
-          uploadId: init.uploadId,
-          partSize: init.partSize,
-          totalParts: init.totalParts,
-          partsUploaded: init.partsUploaded,
+          videoId,
+          uploadId,
+          partSize,
+          totalParts,
+          partsUploaded,
           knownParts,
           onProgress: (progress) => dispatch({ type: "PROGRESS", progress }),
           onStatusChange: (status) => {
             if (status === "COMPLETED") {
               clearPendingUpload();
-              dispatch({ type: "COMPLETED", videoId: init.videoId });
+              dispatch({ type: "COMPLETED", videoId });
               toast.success("Tải lên hoàn tất. Hệ thống đang xử lý video.");
               return;
             }

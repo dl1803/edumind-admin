@@ -19,7 +19,6 @@ import { PipelineStatusText } from "@/components/video/PipelineStatusText";
 import { VideoThumbnail } from "@/components/video/VideoThumbnail";
 import { VideoActionMenu } from "@/components/video/VideoActionMenu";
 import { VideoSummaryDrawer } from "@/components/video/VideoSummaryDrawer";
-import { UploadVideoModal } from "@/components/video/UploadVideoModal";
 import { SelectDropdown } from "@/components/ui/SelectDropdown";
 import { Pagination } from "@/components/ui/Pagination";
 import type {
@@ -78,7 +77,6 @@ function VideosContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [selectedSummaryVideo, setSelectedSummaryVideo] = useState<VideoListItem | null>(null);
   const [openMenuVideoId, setOpenMenuVideoId] = useState<string | null>(null);
 
@@ -142,14 +140,13 @@ function VideosContent() {
           </div>
         }
         actions={
-          <button
-            type="button"
-            onClick={() => setIsUploadModalOpen(true)}
+          <Link
+            href="/videos/upload"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white grad-nebula shadow-nebula hover:opacity-95 font-semibold text-xs transition cursor-pointer"
           >
             <CloudArrowUp size={16} weight="bold" />
             <span>Tải lên video mới</span>
-          </button>
+          </Link>
         }
       />
 
@@ -300,14 +297,13 @@ function VideosContent() {
                         <p className="text-xs text-neutral-500 leading-relaxed max-w-sm mb-6">
                           Hãy tải lên video bài giảng đầu tiên để hệ thống tự động xử lý HLS, phụ đề và nạp tri thức cho AI Trợ giảng.
                         </p>
-                        <button
-                          type="button"
-                          onClick={() => setIsUploadModalOpen(true)}
+                        <Link
+                          href="/videos/upload"
                           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white grad-nebula shadow-nebula hover:opacity-95 font-semibold text-xs transition cursor-pointer"
                         >
                           <CloudArrowUp size={16} weight="bold" />
                           <span>Tải lên video đầu tiên</span>
-                        </button>
+                        </Link>
                       </div>
                     )}
                   </td>
@@ -429,13 +425,12 @@ function VideosContent() {
                             </Link>
                           )}
                           {(row.overallStatus === "uploaded" || row.overallStatus === "uploading") && (
-                            <button
-                              type="button"
-                              onClick={() => setIsUploadModalOpen(true)}
+                            <Link
+                              href="/videos/upload"
                               className="text-purple-700 hover:text-purple-900 font-semibold text-xs whitespace-nowrap transition cursor-pointer"
                             >
                               Gán bài
-                            </button>
+                            </Link>
                           )}
 
                           <div className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -494,11 +489,6 @@ function VideosContent() {
           </div>
         )}
       </div>
-
-      <UploadVideoModal
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
-      />
 
       <VideoSummaryDrawer
         video={selectedSummaryVideo}

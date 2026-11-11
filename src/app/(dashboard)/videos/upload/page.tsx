@@ -83,6 +83,15 @@ export default function UploadVideoPage() {
   const shouldShowCourseError = (courseTouched || hasAttemptedSubmit) && Boolean(errors.courseId);
   const shouldShowLessonError = (lessonTouched || hasAttemptedSubmit) && Boolean(errors.lessonId);
 
+  const isSubmitDisabled =
+    formLocked ||
+    upload.isStarting ||
+    Boolean(dropzoneError) ||
+    !file ||
+    pendingMismatch ||
+    !courseId ||
+    !lessonId;
+
   const handleFileSelect = (selected: File | null) => {
     if (upload.errorKind) upload.reset();
     if (!selected) {
@@ -123,7 +132,11 @@ export default function UploadVideoPage() {
   };
 
   const handleRetry = () => {
-    if (file) void upload.start(file, courseId, lessonId);
+    if (upload.status === "FAILED") {
+      upload.resume();
+    } else if (file) {
+      void upload.start(file, courseId, lessonId);
+    }
   };
 
   const handleDiscardPending = async () => {
@@ -177,39 +190,43 @@ export default function UploadVideoPage() {
 
         {pendingForForm && !file && (
           <div className="p-3 bg-purple-50/60 rounded-xl border border-purple-200 text-xs text-neutral-700 space-y-1.5">
-            <p className="font-semibold text-purple-900 flex items-center gap-1.5">
-              <Sparkle size={14} weight="fill" className="text-purple-600" />
-              Có phiên tải dở dang
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-semibold text-purple-900 flex items-center gap-1.5">
+                <Sparkle size={14} weight="fill" className="text-purple-600" />
+                Có phiên tải dở dang
+              </p>
+              <button
+                type="button"
+                onClick={handleDiscardPending}
+                className="text-[11px] text-purple-700 hover:text-purple-900 font-semibold underline cursor-pointer shrink-0"
+              >
+                Bỏ phiên dở dang
+              </button>
+            </div>
             <p className="text-[11px] text-neutral-600">
               File: <strong className="text-neutral-900">{pendingForForm.fileName}</strong> ({formatFileSize(pendingForForm.fileSize)}). Hãy chọn lại đúng file này để tiếp tục tải.
             </p>
-            <button
-              type="button"
-              onClick={handleDiscardPending}
-              className="text-[11px] text-purple-700 hover:text-purple-900 font-semibold underline cursor-pointer"
-            >
-              Bỏ phiên dở dang
-            </button>
           </div>
         )}
 
         {pendingMismatch && (
           <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
-            <div className="flex items-center gap-1.5 font-semibold text-[11px]">
-              <WarningCircle size={15} weight="fill" className="shrink-0 text-amber-600" />
-              <span>File hoặc bài học không khớp với bản ghi dở dang</span>
+            <div className="flex items-center justify-between gap-2 font-semibold text-[11px]">
+              <div className="flex items-center gap-1.5">
+                <WarningCircle size={15} weight="fill" className="shrink-0 text-amber-600" />
+                <span>File hoặc bài học không khớp với bản ghi dở dang</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleDiscardPending}
+                className="text-[11px] text-amber-900 font-bold underline cursor-pointer shrink-0"
+              >
+                Bỏ phiên dở dang
+              </button>
             </div>
             <p className="text-[10px] text-amber-800">
               Vui lòng chọn đúng file ({pendingForForm?.fileName}) và bài học đã lưu, hoặc bấm bỏ phiên dở dang để bắt đầu mới.
             </p>
-            <button
-              type="button"
-              onClick={handleDiscardPending}
-              className="text-[11px] text-amber-900 font-bold underline cursor-pointer"
-            >
-              Bỏ phiên dở dang
-            </button>
           </div>
         )}
 
@@ -335,10 +352,10 @@ export default function UploadVideoPage() {
             <button
               type="button"
               onClick={handleStart}
-              disabled={formLocked || upload.isStarting}
+              disabled={isSubmitDisabled}
               className={cn(
                 "px-5 py-2.5 rounded-lg text-white font-semibold transition inline-flex items-center gap-1.5 text-xs whitespace-nowrap shrink-0",
-                formLocked || upload.isStarting
+                isSubmitDisabled
                   ? "bg-neutral-300 opacity-60 cursor-not-allowed shadow-none"
                   : "grad-nebula shadow-nebula hover:opacity-95 cursor-pointer"
               )}
