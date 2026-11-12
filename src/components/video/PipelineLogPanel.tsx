@@ -1,130 +1,219 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Copy } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
-import { PIPELINE_STEP_LABELS, PIPELINE_STEP_ORDER } from "@/lib/pipeline";
+import {
+  PIPELINE_STEP_LABELS,
+  PIPELINE_STEP_ORDER,
+  formatClockTime,
+  parsePipelineTimestamp,
+} from "@/lib/pipeline";
 import type { VideoPipeline } from "@/types/video.types";
 
-interface LogLine {
+interface TimelineEvent {
   key: string;
-  timestamp: number;
+  timestamp: number | null;
+  order: number;
   stage: string;
   message: string;
-  isError: boolean;
+  tone: "neutral" | "success" | "error";
 }
 
 interface PipelineLogPanelProps {
   pipeline: VideoPipeline;
-  updatedAt: number;
+  updatedAt?: number;
 }
 
-function parseTime(value: string | null): number | null {
-  if (!value) return null;
-  const time = new Date(value).getTime();
-  return Number.isNaN(time) ? null : time;
+function formatErrorEventMessage(rawMessage: string | null | undefined): string {
+  const trimmed = rawMessage?.trim();
+  if (!trimmed) return "Lỗi: Xử lý thất bại";
+  return /^lỗi\s*:/i.test(trimmed) ? trimmed : `Lỗi: ${trimmed}`;
 }
 
-function formatTimeOfDay(value: number): string {
-  const date = new Date(value);
-  const pad = (part: number) => String(part).padStart(2, "0");
-  return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-}
+function buildTimelineEvents(pipeline: VideoPipeline): TimelineEvent[] {
+  const events: TimelineEvent[] = [];
 
-function buildLogLines(pipeline: VideoPipeline): LogLine[] {
-  const lines: LogLine[] = [];
-
-  PIPELINE_STEP_ORDER.forEach((name) => {
+  PIPELINE_STEP_ORDER.forEach((name, stepIndex) => {
     const step = pipeline.steps.find((item) => item.step === name);
     if (!step) return;
 
     const stage = PIPELINE_STEP_LABELS[name];
-    const startedAt = parseTime(step.startedAt);
-    const completedAt = parseTime(step.completedAt);
+    const startedAt = parsePipelineTimestamp(step.startedAt);
+    const completedAt = parsePipelineTimestamp(step.completedAt);
 
     if (startedAt !== null) {
-      lines.push({ key: `${name}-start`, timestamp: startedAt, stage, message: "Bắt đầu xử lý", isError: false });
+      events.push({
+        key: `${name}-start`,
+        timestamp: startedAt,
+        order: stepIndex * 10 + 1,
+        stage,
+        message: "Bắt đầu xử lý",
+        tone: "neutral",
+      });
     }
+
     if (step.status === "completed" && completedAt !== null) {
-      lines.push({ key: `${name}-done`, timestamp: completedAt, stage, message: "Hoàn tất", isError: false });
+      events.push({
+        key: `${name}-done`,
+        timestamp: completedAt,
+        order: stepIndex * 10 + 2,
+        stage,
+        message: "Hoàn tất",
+        tone: "success",
+      });
     }
+
     if (step.status === "failed") {
-      const failedAt = completedAt ?? startedAt;
-      if (failedAt !== null) {
-        lines.push({
-          key: `${name}-error`,
-          timestamp: failedAt,
-          stage,
-          message: step.errorMessage ?? "Xử lý thất bại",
-          isError: true,
-        });
-      }
+      events.push({
+        key: `${name}-error`,
+        timestamp: completedAt ?? startedAt,
+        order: stepIndex * 10 + 3,
+        stage,
+        message: formatErrorEventMessage(step.errorMessage),
+        tone: "error",
+      });
     }
   });
 
-  return lines.sort((a, b) => a.timestamp - b.timestamp);
+  if (events.length === 0 && pipeline.errorMessage) {
+    events.push({
+      key: "pipeline-error",
+      timestamp: parsePipelineTimestamp(pipeline.completedAt ?? pipeline.startedAt),
+      order: 99,
+      stage: "Hệ thống",
+      message: formatErrorEventMessage(pipeline.errorMessage),
+      tone: "error",
+    });
+  }
+
+  return events.sort((a, b) => {
+    if (a.timestamp === null && b.timestamp === null) return a.order - b.order;
+    if (a.timestamp === null) return 1;
+    if (b.timestamp === null) return -1;
+    if (a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
+    return a.order - b.order;
+  });
 }
 
-export function PipelineLogPanel({ pipeline, updatedAt }: PipelineLogPanelProps) {
+export function PipelineLogPanel({ pipeline, updatedAt = 0 }: PipelineLogPanelProps) {
   const [copied, setCopied] = useState(false);
-  const lines = buildLogLines(pipeline);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const events = buildTimelineEvents(pipeline);
 
-  const handleCopyLogs = async () => {
-    if (lines.length === 0) return;
-    const fullText = lines
-      .map((line) => `[${formatTimeOfDay(line.timestamp)}] ${line.stage} — ${line.message}`)
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
+  const handleCopyDetails = async () => {
+    if (events.length === 0 || !navigator.clipboard?.writeText) return;
+
+    const header = pipeline.lessonTitle
+      ? `Bài giảng: ${pipeline.lessonTitle}`
+      : `Mã video: ${pipeline.videoId}`;
+    const body = events
+      .map((event) => {
+        const clock = event.timestamp !== null ? formatClockTime(event.timestamp) : "--:--:--";
+        return `[${clock}] ${event.stage} — ${event.message}`;
+      })
       .join("\n");
-    await navigator.clipboard.writeText(fullText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+
+    try {
+      await navigator.clipboard.writeText(`${header}\n${body}`);
+      setCopied(true);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
   };
 
   return (
     <section
-      aria-label="Nhật ký xử lý"
-      className="bg-neutral-900 rounded-2xl border border-neutral-800 overflow-hidden shadow-xs"
+      aria-label="Lịch sử các mốc xử lý"
+      className="bg-white rounded-2xl border border-purple-100 shadow-xs overflow-hidden"
     >
-      <div className="h-10 px-4 flex items-center justify-between bg-neutral-950 border-b border-neutral-800">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-neutral-300">Nhật ký xử lý</span>
+      <div className="px-6 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-purple-100">
+        <div>
+          <h2 className="text-sm font-bold text-neutral-900">Lịch sử các mốc xử lý</h2>
           {updatedAt > 0 && (
-            <span className="text-xs font-mono tabular-nums text-neutral-500 hidden sm:inline">
-              (Cập nhật lúc {formatTimeOfDay(updatedAt)})
-            </span>
+            <p className="text-xs font-mono tabular-nums text-neutral-400 mt-0.5">
+              Cập nhật lúc {formatClockTime(updatedAt)}
+            </p>
           )}
         </div>
+
         <button
           type="button"
-          onClick={handleCopyLogs}
-          disabled={lines.length === 0}
-          className="flex items-center gap-1.5 text-xs text-neutral-400 hover:text-white transition px-2.5 py-1 rounded-lg bg-neutral-800/80 hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          onClick={handleCopyDetails}
+          disabled={events.length === 0}
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl border border-neutral-200 bg-white hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 text-xs font-semibold text-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
         >
           {copied ? (
             <>
-              <Check size={14} className="text-emerald-400" />
-              <span className="text-emerald-400 font-medium">Đã sao chép</span>
+              <Check size={14} className="text-emerald-600" />
+              <span className="text-emerald-700">Đã sao chép</span>
             </>
           ) : (
             <>
               <Copy size={14} />
-              <span>Sao chép log</span>
+              <span>Sao chép chi tiết</span>
             </>
           )}
         </button>
       </div>
-      <div role="log" className="p-4 max-h-60 overflow-y-auto font-mono text-xs leading-5 space-y-2">
-        {lines.length === 0 ? (
-          <p className="text-neutral-500">Chưa có nhật ký xử lý.</p>
-        ) : (
-          lines.map((line) => (
-            <p key={line.key} className={cn("text-neutral-300", line.isError && "text-rose-400 font-medium")}>
-              <span className="text-neutral-500">[{formatTimeOfDay(line.timestamp)}]</span> {line.stage} —{" "}
-              {line.message}
-            </p>
-          ))
-        )}
-      </div>
+
+      {events.length === 0 ? (
+        <p className="px-6 py-6 text-xs text-neutral-500 text-center">
+          Chưa có mốc thời gian nào được ghi nhận.
+        </p>
+      ) : (
+        <div className="max-h-72 overflow-y-auto overflow-x-auto">
+          <table className="w-full table-fixed border-collapse text-xs" aria-label="Bảng các mốc xử lý">
+            <thead>
+              <tr className="bg-purple-50/50 border-b border-purple-100 text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                <th className="py-3 px-6 w-[25%] text-center align-middle whitespace-nowrap">
+                  Thời gian
+                </th>
+                <th className="py-3 px-6 w-[30%] text-center align-middle whitespace-nowrap">
+                  Giai đoạn
+                </th>
+                <th className="py-3 px-6 w-[45%] text-center align-middle whitespace-nowrap">
+                  Trạng thái
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-100 text-xs leading-5">
+              {events.map((event) => (
+                <tr key={event.key} className="hover:bg-purple-50/30 transition">
+                  <td className="py-3.5 px-6 text-center align-middle font-mono text-neutral-500 tabular-nums whitespace-nowrap">
+                    {event.timestamp !== null ? formatClockTime(event.timestamp) : "—"}
+                  </td>
+                  <td className="py-3.5 px-6 text-center align-middle font-semibold text-neutral-900 whitespace-nowrap">
+                    {event.stage}
+                  </td>
+                  <td
+                    className={cn(
+                      "py-3.5 px-6 text-center align-middle break-words",
+                      event.tone === "error"
+                        ? "text-rose-700 font-medium"
+                        : event.tone === "success"
+                        ? "text-emerald-700 font-medium"
+                        : "text-neutral-600"
+                    )}
+                  >
+                    {event.message}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }
-
