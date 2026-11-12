@@ -6,23 +6,26 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowClockwise,
   ArrowCounterClockwise,
+  Article,
   CloudArrowUp,
+  Cpu,
   FilmStrip,
   MagnifyingGlass,
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TopBarContent } from "@/context/TopBarContext";
 import { useVideos } from "@/hooks/useVideos";
+import { toast } from "@/hooks/useToast";
+import { videoService } from "@/services/video.service";
 import { formatDateTime } from "@/lib/utils";
 import { PipelineStatusText } from "@/components/video/PipelineStatusText";
 import { VideoThumbnail } from "@/components/video/VideoThumbnail";
 import { VideoActionMenu } from "@/components/video/VideoActionMenu";
-import { VideoSummaryDrawer } from "@/components/video/VideoSummaryDrawer";
 import { SelectDropdown } from "@/components/ui/SelectDropdown";
 import { Pagination } from "@/components/ui/Pagination";
 import type {
-  VideoListItem,
   VideoListParams,
   VideoListSort,
   VideoOverallStatus,
@@ -42,10 +45,11 @@ const DEFAULT_SORT: VideoListSort = "newest";
 
 const STATUS_OPTIONS = [
   { label: "Tất cả trạng thái", value: "" },
-  { label: "Hoàn tất xử lý (43)", value: "completed" },
-  { label: "Đang xử lý (3)", value: "processing" },
-  { label: "Lỗi (2)", value: "failed" },
-  { label: "Chưa gán bài học (4)", value: "uploaded" },
+  { label: "Hoàn tất", value: "completed" },
+  { label: "Đang xử lý", value: "processing" },
+  { label: "Đang tải lên", value: "uploading" },
+  { label: "Chờ xử lý", value: "uploaded" },
+  { label: "Lỗi", value: "failed" },
 ];
 
 const COURSE_OPTIONS = [
@@ -62,6 +66,45 @@ const PAGE_SIZE_OPTIONS = [
   { label: "50", value: "50" },
 ];
 
+const ROW_LINK_ACTIONS: Record<
+  Exclude<VideoOverallStatus, "failed">,
+  {
+    label: string;
+    getHref: (videoId: string) => string;
+    Icon: typeof Article;
+    className: string;
+  }
+> = {
+  completed: {
+    label: "Duyệt phụ đề",
+    getHref: (videoId) => `/videos/transcript?videoId=${encodeURIComponent(videoId)}`,
+    Icon: Article,
+    className:
+      "border-purple-200 bg-white text-purple-700 hover:bg-purple-50 hover:border-purple-300",
+  },
+  processing: {
+    label: "Tiến trình",
+    getHref: (videoId) => `/videos/pipeline?videoId=${encodeURIComponent(videoId)}`,
+    Icon: Cpu,
+    className:
+      "border-amber-200 bg-white text-amber-800 hover:bg-amber-50 hover:border-amber-300",
+  },
+  uploading: {
+    label: "Tiến trình",
+    getHref: (videoId) => `/videos/pipeline?videoId=${encodeURIComponent(videoId)}`,
+    Icon: Cpu,
+    className:
+      "border-amber-200 bg-white text-amber-800 hover:bg-amber-50 hover:border-amber-300",
+  },
+  uploaded: {
+    label: "Tiến trình",
+    getHref: (videoId) => `/videos/pipeline?videoId=${encodeURIComponent(videoId)}`,
+    Icon: Cpu,
+    className:
+      "border-neutral-200 bg-white text-neutral-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200",
+  },
+};
+
 function parseStatus(value: string | null): VideoOverallStatus | "" {
   const matched = STATUS_OPTIONS.find((s) => s.value === value);
   return matched ? (matched.value as VideoOverallStatus | "") : "";
@@ -76,9 +119,21 @@ function VideosContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
-  const [selectedSummaryVideo, setSelectedSummaryVideo] = useState<VideoListItem | null>(null);
   const [openMenuVideoId, setOpenMenuVideoId] = useState<string | null>(null);
+
+  const retryMutation = useMutation({
+    mutationFn: (videoId: string) => videoService.retryPipelineStep(videoId),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
+      queryClient.invalidateQueries({ queryKey: ["pipeline", result.videoId] });
+      toast.success(result.message);
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Không thể thử lại tiến trình.");
+    },
+  });
 
   const query: ListQuery = useMemo(
     () => ({
@@ -233,12 +288,12 @@ function VideosContent() {
           <table className="w-full table-fixed text-left border-collapse min-w-[1150px]" aria-label="Bảng dữ liệu kho video">
             <thead>
               <tr className="bg-neutral-50 border-b border-neutral-200 text-xs font-semibold text-neutral-600 uppercase tracking-wider">
-                <th className="py-3.5 px-4 text-center w-[28%] whitespace-nowrap align-middle">Video &amp; Bài học</th>
+                <th className="py-3.5 px-4 text-center w-[27%] whitespace-nowrap align-middle">Video &amp; Bài học</th>
                 <th className="py-3.5 px-4 text-center w-[20%] whitespace-nowrap align-middle">Khóa học</th>
                 <th className="py-3.5 px-4 text-center w-[10%] whitespace-nowrap align-middle">Dung lượng</th>
                 <th className="py-3.5 px-4 text-center w-[16%] whitespace-nowrap align-middle">Trạng thái Pipeline</th>
                 <th className="py-3.5 px-4 text-center w-[10%] whitespace-nowrap align-middle">Ngày tải lên</th>
-                <th className="py-3.5 px-4 text-center w-[16%] whitespace-nowrap align-middle">Thao tác</th>
+                <th className="py-3.5 px-4 text-center w-[17%] whitespace-nowrap align-middle">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 text-xs text-neutral-800">
@@ -316,15 +371,14 @@ function VideosContent() {
                   return (
                     <tr
                       key={row.videoId}
-                      className={`transition ${
-                        isMenuOpen
+                      className={`transition ${isMenuOpen
                           ? "bg-purple-50/40 relative z-30"
                           : row.overallStatus === "processing"
-                          ? "bg-amber-50/15 hover:bg-amber-50/30"
-                          : row.overallStatus === "failed"
-                          ? "bg-rose-50/15 hover:bg-rose-50/30"
-                          : "hover:bg-purple-50/30"
-                      }`}
+                            ? "bg-amber-50/15 hover:bg-amber-50/30"
+                            : row.overallStatus === "failed"
+                              ? "bg-rose-50/15 hover:bg-rose-50/30"
+                              : "hover:bg-purple-50/30"
+                        }`}
                     >
                       {/* CỘT 1: VIDEO & BÀI HỌC (28%) - CĂN GIỮA THEO CỘT, KHỐI NỘI DUNG 270PX CĂN TRÁI GỌN GÀNG */}
                       <td className="py-3.5 px-4 align-middle">
@@ -397,51 +451,61 @@ function VideosContent() {
                         </span>
                       </td>
 
-                      {/* CỘT 6: THAO TÁC (16%) - CĂN GIỮA VỚI TEXT, ICON 3 CHẤM ĐỘC LẬP BÊN PHẢI */}
-                      <td className={`py-3.5 px-4 text-center align-middle ${isMenuOpen ? "relative z-30" : ""}`}>
-                        <div className="relative flex items-center justify-center min-h-[32px]">
-                          {row.overallStatus === "completed" && (
-                            <Link
-                              href={`/videos/transcript?videoId=${row.videoId}`}
-                              className="text-purple-700 hover:text-purple-900 font-semibold text-xs whitespace-nowrap transition"
+                      {/* CỘT 6: THAO TÁC (17%) - NÚT HÀNH ĐỘNG RÕ RÀNG, CHỈ HIỆN MENU PHỤ KHI HOÀN TẤT HOẶC LỖI */}
+                      <td className={`py-3.5 pl-3 pr-2 text-center align-middle ${isMenuOpen ? "relative z-30" : ""}`}>
+                        <div className="relative flex items-center justify-center pr-8 min-h-[32px]">
+                          {row.overallStatus === "failed" ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpenMenuVideoId(null);
+                                retryMutation.mutate(row.videoId);
+                              }}
+                              disabled={retryMutation.isPending}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border shadow-2xs font-semibold text-xs whitespace-nowrap transition active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer border-rose-200 bg-white text-rose-700 hover:bg-rose-50 hover:border-rose-300"
                             >
-                              Duyệt phụ đề
-                            </Link>
-                          )}
-                          {row.overallStatus === "processing" && (
-                            <Link
-                              href={`/videos/pipeline?videoId=${row.videoId}`}
-                              className="text-amber-800 hover:text-amber-950 font-semibold text-xs whitespace-nowrap transition"
-                            >
-                              Tiến trình
-                            </Link>
-                          )}
-                          {row.overallStatus === "failed" && (
-                            <Link
-                              href={`/videos/pipeline?videoId=${row.videoId}`}
-                              className="text-rose-700 hover:text-rose-900 font-semibold text-xs whitespace-nowrap transition"
-                            >
-                              Thử lại
-                            </Link>
-                          )}
-                          {(row.overallStatus === "uploaded" || row.overallStatus === "uploading") && (
-                            <Link
-                              href="/videos/upload"
-                              className="text-purple-700 hover:text-purple-900 font-semibold text-xs whitespace-nowrap transition cursor-pointer"
-                            >
-                              Gán bài
-                            </Link>
+                              <ArrowClockwise
+                                size={13}
+                                weight="bold"
+                                className={`shrink-0 ${
+                                  retryMutation.isPending && retryMutation.variables === row.videoId
+                                    ? "animate-spin"
+                                    : ""
+                                }`}
+                              />
+                              <span>
+                                {retryMutation.isPending && retryMutation.variables === row.videoId
+                                  ? "Đang thử lại..."
+                                  : "Thử lại"}
+                              </span>
+                            </button>
+                          ) : (
+                            (() => {
+                              const action = ROW_LINK_ACTIONS[row.overallStatus];
+                              if (!action) return null;
+                              const ActionIcon = action.Icon;
+                              return (
+                                <Link
+                                  href={action.getHref(row.videoId)}
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border shadow-2xs font-semibold text-xs whitespace-nowrap transition active:scale-[0.98] cursor-pointer ${action.className}`}
+                                >
+                                  <ActionIcon size={13} weight="bold" className="shrink-0" />
+                                  <span>{action.label}</span>
+                                </Link>
+                              );
+                            })()
                           )}
 
-                          <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                            <VideoActionMenu
-                              video={row}
-                              isOpen={isMenuOpen}
-                              onOpenChange={(open) => setOpenMenuVideoId(open ? row.videoId : null)}
-                              onOpenSummary={(video) => setSelectedSummaryVideo(video)}
-                              dropUp={isNearBottom}
-                            />
-                          </div>
+                          {(row.overallStatus === "completed" || row.overallStatus === "failed") && (
+                            <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                              <VideoActionMenu
+                                video={row}
+                                isOpen={isMenuOpen}
+                                onOpenChange={(open) => setOpenMenuVideoId(open ? row.videoId : null)}
+                                dropUp={isNearBottom}
+                              />
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -489,12 +553,6 @@ function VideosContent() {
           </div>
         )}
       </div>
-
-      <VideoSummaryDrawer
-        video={selectedSummaryVideo}
-        isOpen={Boolean(selectedSummaryVideo)}
-        onClose={() => setSelectedSummaryVideo(null)}
-      />
     </div>
   );
 }
