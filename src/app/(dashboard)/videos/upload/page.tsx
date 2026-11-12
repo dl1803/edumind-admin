@@ -163,7 +163,11 @@ export default function UploadVideoPage() {
               Video &amp; Xử lý AI
             </Link>
             <span className="text-neutral-300">/</span>
-            <span className="font-bold text-neutral-900">Kho video bài học</span>
+            <Link href="/videos" className="text-neutral-500 hover:text-purple-700 font-medium transition">
+              Kho video bài học
+            </Link>
+            <span className="text-neutral-300">/</span>
+            <h1 className="text-sm font-bold text-neutral-900">Tải lên video</h1>
           </div>
         }
       />
@@ -309,30 +313,38 @@ export default function UploadVideoPage() {
               <span className="font-bold text-sm">Tải lên video hoàn tất!</span>
             </div>
             <p className="text-xs text-neutral-600">
-              Video đã được tải lên máy chủ an toàn và đang tự động kích hoạt pipeline xử lý AI.
+              Video đã được lưu trên hệ thống và bắt đầu xử lý tự động. Bạn có thể theo dõi tiến trình ngay bây giờ.
             </p>
-            <div className="flex justify-end gap-2.5 pt-2">
+            <div className="flex flex-wrap justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={handleUploadAnother}
-                className="px-4 py-2 rounded-lg border border-neutral-200 text-neutral-700 font-medium hover:bg-neutral-50 transition text-xs cursor-pointer"
+                className="px-4 py-2 rounded-lg border border-neutral-200 bg-white text-neutral-700 font-medium hover:bg-neutral-50 transition text-xs cursor-pointer"
               >
                 Tải video khác
               </button>
               <Link
                 href="/videos"
+                className="px-4 py-2 rounded-lg border border-neutral-200 bg-white text-neutral-700 font-semibold hover:bg-purple-50 hover:text-purple-700 transition text-xs"
+              >
+                Về kho video bài học
+              </Link>
+              <Link
+                href={upload.videoId ? `/videos/pipeline?videoId=${encodeURIComponent(upload.videoId)}` : "/videos"}
                 className="px-4 py-2 rounded-lg text-white grad-nebula font-semibold shadow-nebula hover:opacity-95 transition text-xs"
               >
-                Về danh sách video
+                Theo dõi tiến trình
               </Link>
             </div>
           </div>
         )}
 
-        <div className="p-2.5 bg-purple-50/50 rounded-lg border border-purple-100 flex items-center gap-2 text-[11px] text-purple-700 font-medium">
-          <Sparkle size={14} weight="fill" className="text-purple-600 shrink-0" />
-          <span>Pipeline 4 bước (Mã hóa HLS, Whisper STT &amp; Vector Index) sẽ tự động chạy ngầm.</span>
-        </div>
+        {!isCompleted && (
+          <div className="p-2.5 bg-purple-50/50 rounded-lg border border-purple-100 flex items-center gap-2 text-[11px] text-purple-700 font-medium">
+            <Sparkle size={14} weight="fill" className="text-purple-600 shrink-0" />
+            <span>Hệ thống sẽ tự động xử lý video, tạo phụ đề và đồng bộ dữ liệu cho Trợ giảng AI.</span>
+          </div>
+        )}
 
         {upload.errorKind === "GENERAL" && upload.status === "IDLE" && upload.errorMessage && (
           <div role="alert" className="flex items-center gap-1.5 text-[11px] font-medium text-red-600">

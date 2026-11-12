@@ -1,6 +1,7 @@
 import { apiClient } from "./api-client";
 import { PaginatedResponse } from "@/types/api.types";
 import { mockGetVideos } from "./mock/videoList.mock";
+import { mockGetPipelineStatus, mockRetryPipelineStep } from "./mock/pipeline.mock";
 import {
   BackendCancelUploadResponse,
   BackendCompleteUploadResponse,
@@ -13,8 +14,10 @@ import {
   InitUploadResponse,
   PartUrlRequest,
   PartUrlResponse,
+  PipelineStepName,
   VideoListItem,
   VideoListParams,
+  VideoPipeline,
 } from "@/types/video.types";
 
 function unwrap<T>(body: unknown, requiredKey: string): T {
@@ -70,5 +73,16 @@ export const videoService = {
 
   async getVideos(params?: VideoListParams): Promise<PaginatedResponse<VideoListItem>> {
     return mockGetVideos(params);
+  },
+
+  async getPipelineStatus(videoId: string): Promise<VideoPipeline | null> {
+    return mockGetPipelineStatus(videoId);
+  },
+
+  async retryPipelineStep(
+    videoId: string,
+    step?: PipelineStepName
+  ): Promise<{ message: string; videoId: string }> {
+    return mockRetryPipelineStep(videoId, step);
   },
 };
