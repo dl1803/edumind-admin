@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -11,16 +11,18 @@ import {
 } from "@phosphor-icons/react";
 import { TopBarContent } from "@/context/TopBarContext";
 import { usePipelineStatus } from "@/hooks/usePipelineStatus";
+import { usePipelineActions } from "@/hooks/usePipelineActions";
 import {
   findFailedPipelineStep,
   formatElapsedDuration,
-  isPipelineActive,
 } from "@/lib/pipeline";
 import { formatDateTime } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PipelineStatusText } from "@/components/video/PipelineStatusText";
 import { PipelineStepper } from "@/components/video/PipelineStepper";
 import { PipelineLogPanel } from "@/components/video/PipelineLogPanel";
+import { PipelineErrorDetails } from "@/components/video/PipelineErrorDetails";
 
 function PipelineContent() {
   const searchParams = useSearchParams();
@@ -28,6 +30,8 @@ function PipelineContent() {
   const videoId = rawVideoId?.trim() || null;
 
   const { data, isError, isFetching, refetch, dataUpdatedAt } = usePipelineStatus(videoId);
+  const { retry, cancel } = usePipelineActions(videoId);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 
   const topBar = (
     <TopBarContent
@@ -91,16 +95,21 @@ function PipelineContent() {
     );
   }
 
-  const isActive = isPipelineActive(data?.overallStatus);
-  const isCompleted = data?.overallStatus === "completed";
-  const isFailed = data?.overallStatus === "failed";
+  const status = data?.overallStatus;
+  const isCompleted = status === "completed";
+  const isFailed = status === "failed";
+  const canCancel = status === "uploading" || status === "processing";
+  const canRetry = isFailed;
   const totalElapsed =
     isCompleted && data ? formatElapsedDuration(data.startedAt, data.completedAt) : null;
-  const failedInfo = isFailed && data ? findFailedPipelineStep(data.steps) : null;
-  const failureDetail =
-    data?.errorMessage ||
-    failedInfo?.step.errorMessage ||
-    "Hệ thống chưa thể hoàn tất bước xử lý này. Bạn có thể thử lại ở bước gặp sự cố.";
+  const failedStepName =
+    isFailed && data ? findFailedPipelineStep(data.steps)?.step.step : undefined;
+  const cancelHint = canCancel
+    ? "Hủy tiến trình xử lý hiện tại"
+    : "Chỉ hủy được khi video đang tải lên hoặc đang xử lý";
+  const retryHint = canRetry
+    ? "Thử lại bước xử lý gặp sự cố"
+    : "Chỉ thử lại được khi video gặp lỗi";
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -154,26 +163,27 @@ function PipelineContent() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2 shrink-0">
-                {isActive && (
+                <span title={cancelHint} className="inline-flex">
                   <button
                     type="button"
-                    title="Hủy tiến trình xử lý hiện tại"
-                    className="inline-flex items-center justify-center h-9 px-3.5 rounded-xl border border-neutral-200 bg-white text-neutral-700 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 text-xs font-semibold transition cursor-pointer"
+                    onClick={() => setIsCancelDialogOpen(true)}
+                    disabled={!canCancel || cancel.isPending}
+                    className="inline-flex items-center justify-center h-9 px-3.5 rounded-xl border border-neutral-200 bg-white text-neutral-700 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 text-xs font-semibold transition cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
                   >
                     Hủy tiến trình
                   </button>
-                )}
-
-                {isFailed && (
+                </span>
+                <span title={retryHint} className="inline-flex">
                   <button
                     type="button"
-                    title="Thử lại bước xử lý gặp sự cố"
-                    className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl border border-rose-300 bg-white text-rose-700 hover:bg-rose-50 text-xs font-semibold transition cursor-pointer"
+                    onClick={() => retry.mutate(failedStepName)}
+                    disabled={!canRetry || retry.isPending}
+                    className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl border border-rose-300 bg-white text-rose-700 hover:bg-rose-50 text-xs font-semibold transition cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
                   >
-                    <ArrowClockwise size={14} weight="bold" />
-                    <span>Thử lại</span>
+                    <ArrowClockwise size={14} weight="bold" className={retry.isPending ? "animate-spin" : undefined} />
+                    <span>{retry.isPending ? "Đang thử lại..." : "Thử lại"}</span>
                   </button>
-                )}
+                </span>
 
                 {isCompleted && (
                   <Link
@@ -217,25 +227,26 @@ function PipelineContent() {
             </div>
           </section>
 
-          {isFailed && (
-            <div className="bg-rose-50/70 rounded-2xl border border-rose-200 p-5 shadow-xs flex items-start gap-3">
-              <WarningCircle size={20} weight="fill" className="text-rose-600 shrink-0 mt-0.5" />
-              <div className="space-y-1 min-w-0">
-                <h3 className="text-sm font-bold text-neutral-900">
-                  {failedInfo
-                    ? `Sự cố tại Bước ${failedInfo.order}: ${failedInfo.label}`
-                    : "Quá trình xử lý video gặp sự cố"}
-                </h3>
-                <p className="text-xs text-rose-800 leading-relaxed">{failureDetail}</p>
-              </div>
-            </div>
-          )}
+          {isFailed && data && <PipelineErrorDetails pipeline={data} />}
 
           <PipelineStepper steps={data.steps} />
 
           <PipelineLogPanel pipeline={data} updatedAt={dataUpdatedAt} />
         </div>
       )}
+
+      <ConfirmDialog
+        open={isCancelDialogOpen}
+        title="Hủy xử lý video?"
+        description="Hành động không thể hoàn tác."
+        confirmLabel="Xác nhận"
+        destructive
+        loading={cancel.isPending}
+        onConfirm={() =>
+          cancel.mutate(undefined, { onSettled: () => setIsCancelDialogOpen(false) })
+        }
+        onClose={() => setIsCancelDialogOpen(false)}
+      />
     </div>
   );
 }
