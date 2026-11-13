@@ -1,7 +1,11 @@
 import { apiClient } from "./api-client";
 import { PaginatedResponse } from "@/types/api.types";
 import { mockGetVideos } from "./mock/videoList.mock";
-import { mockGetPipelineStatus, mockRetryPipelineStep } from "./mock/pipeline.mock";
+import {
+  mockCancelPipeline,
+  mockGetPipelineStatus,
+  mockRetryPipelineStep,
+} from "./mock/pipeline.mock";
 import {
   BackendCancelUploadResponse,
   BackendCompleteUploadResponse,
@@ -84,5 +88,9 @@ export const videoService = {
     step?: PipelineStepName
   ): Promise<{ message: string; videoId: string }> {
     return mockRetryPipelineStep(videoId, step);
+  },
+
+  async cancelPipeline(videoId: string): Promise<CancelUploadResponse> {
+    return mockCancelPipeline(videoId);
   },
 };

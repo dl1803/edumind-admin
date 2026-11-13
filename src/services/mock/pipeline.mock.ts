@@ -1,6 +1,7 @@
 import { PIPELINE_STEP_LABELS, PIPELINE_STEP_ORDER } from "@/lib/pipeline";
 import { MOCK_VIDEOS } from "./videoList.mock";
 import type {
+  CancelUploadResponse,
   PipelineStep,
   PipelineStepName,
   PipelineStepStatus,
@@ -64,6 +65,12 @@ const retriedSeeds = new Map<string, StepSeeds>();
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+function mockApiError(status: number, code: string, message: string): Error {
+  return Object.assign(new Error(message), {
+    response: { status, data: { error: { code, message } } },
+  });
+}
+
 function offsetTime(base: string, seconds: number): string {
   return new Date(new Date(base).getTime() + seconds * 1000).toISOString();
 }
@@ -108,10 +115,10 @@ export async function mockRetryPipelineStep(
   await delay(400);
   const video = MOCK_VIDEOS.find((item) => item.videoId === videoId);
   if (!video) {
-    throw new Error("Video không tồn tại.");
+    throw mockApiError(404, "NOT_FOUND", "Video không tồn tại.");
   }
   if (video.overallStatus !== "failed") {
-    throw new Error("Chỉ có thể thử lại video đang gặp lỗi.");
+    throw mockApiError(409, "CONFLICT", "Chỉ có thể thử lại video đang gặp lỗi.");
   }
 
   const targetStep =
@@ -138,4 +145,18 @@ export async function mockRetryPipelineStep(
     message: `Đã bắt đầu xử lý lại bước ${PIPELINE_STEP_LABELS[targetStep]}.`,
     videoId: video.videoId,
   };
+}
+
+export async function mockCancelPipeline(videoId: string): Promise<CancelUploadResponse> {
+  await delay(600);
+  const video = MOCK_VIDEOS.find((item) => item.videoId === videoId);
+  if (!video) {
+    throw mockApiError(404, "NOT_FOUND", "Video không tồn tại.");
+  }
+  if (video.overallStatus !== "uploading" && video.overallStatus !== "processing") {
+    throw mockApiError(409, "CONFLICT", "Chỉ có thể hủy video đang được xử lý.");
+  }
+  retriedSeeds.delete(video.videoId);
+  video.overallStatus = "uploaded";
+  return { message: "Đã hủy xử lý.", overallStatus: "uploaded" };
 }
