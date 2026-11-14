@@ -5,7 +5,6 @@ import {
   BookmarkSimple,
   Clock,
   Sparkle,
-  X,
 } from "@phosphor-icons/react";
 import type { VideoListItem } from "@/types/video.types";
 
@@ -33,14 +32,43 @@ export function VideoSummaryDrawer({ video, isOpen, onClose }: VideoSummaryDrawe
   if (!isOpen || !video) return null;
 
   return (
-    <div
-      className="fixed inset-0 bg-neutral-950/50 backdrop-blur-xs flex items-end justify-center z-50 animate-in fade-in duration-200"
-      onClick={onClose}
-    >
+    <>
+      <style>{`
+        @keyframes drawerSlideUp {
+          0% {
+            transform: translateY(100%);
+            opacity: 0.5;
+          }
+          100% {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        @keyframes drawerFadeIn {
+          0% {
+            opacity: 0;
+            backdrop-filter: blur(0px);
+          }
+          100% {
+            opacity: 1;
+            backdrop-filter: blur(6px);
+          }
+        }
+      `}</style>
       <div
-        className="w-full max-w-4xl max-h-[85vh] bg-white rounded-t-[28px] shadow-2xl border-t border-purple-200 flex flex-col relative z-20 animate-in slide-in-from-bottom-8 duration-200"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-end justify-center z-50"
+        style={{
+          animation: "drawerFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        }}
+        onClick={onClose}
       >
+        <div
+          className="w-full max-w-4xl max-h-[85vh] bg-white rounded-t-[28px] shadow-2xl border-t border-purple-200 flex flex-col relative z-20"
+          style={{
+            animation: "drawerSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
         <div className="w-full pt-2.5 pb-1 flex justify-center shrink-0 cursor-pointer" onClick={onClose}>
           <div className="w-12 h-1.5 rounded-full bg-neutral-300 hover:bg-neutral-400 transition" />
         </div>
@@ -53,8 +81,8 @@ export function VideoSummaryDrawer({ video, isOpen, onClose }: VideoSummaryDrawe
             <div>
               <h3 className="text-sm font-bold text-purple-950 flex items-center gap-2">
                 <span>EduAI Tóm tắt bài giảng</span>
-                <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md bg-purple-100 text-purple-700">
-                  AI Generated
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-purple-100 text-purple-700">
+                  Tự động tạo
                 </span>
               </h3>
               <p className="text-xs text-neutral-500 font-medium truncate max-w-lg">
@@ -62,15 +90,6 @@ export function VideoSummaryDrawer({ video, isOpen, onClose }: VideoSummaryDrawe
               </p>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white hover:bg-neutral-100 text-neutral-500 hover:text-neutral-800 flex items-center justify-center transition border border-neutral-200 shadow-2xs cursor-pointer"
-            title="Đóng tóm tắt"
-          >
-            <X size={16} weight="bold" />
-          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar text-xs">
@@ -141,15 +160,15 @@ export function VideoSummaryDrawer({ video, isOpen, onClose }: VideoSummaryDrawe
               <span>Ghi chú quan trọng cho giảng viên</span>
             </h4>
             <ul className="list-disc pl-5 space-y-1 text-neutral-600 leading-relaxed text-[11px]">
-              <li>Bản tóm tắt này được Whisper STT và mô hình ngôn ngữ sinh tự động từ âm thanh bài giảng.</li>
-              <li>Giảng viên có thể duyệt lại toàn văn phụ đề tại màn hình Duyệt phụ đề (A-09) để đảm bảo độ chính xác tuyệt đối.</li>
+              <li>Bản tóm tắt này được hệ thống tự động trích xuất từ âm thanh bài giảng.</li>
+              <li>Giảng viên có thể duyệt lại toàn văn phụ đề tại màn hình Duyệt phụ đề để đảm bảo độ chính xác tuyệt đối.</li>
             </ul>
           </div>
         </div>
 
         <div className="px-6 py-3 border-t border-neutral-100 bg-neutral-50/60 flex items-center justify-between text-xs shrink-0">
           <span className="text-neutral-500">
-            Hạn mức tạo tóm tắt AI: <strong className="text-neutral-800">Không giới hạn (Admin)</strong>
+            Hạn mức tạo tóm tắt: <strong className="text-neutral-800">Không giới hạn</strong>
           </span>
           <button
             type="button"
@@ -161,6 +180,7 @@ export function VideoSummaryDrawer({ video, isOpen, onClose }: VideoSummaryDrawe
         </div>
       </div>
     </div>
+    </>
   );
 }
 
