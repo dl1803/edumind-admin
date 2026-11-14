@@ -39,6 +39,16 @@ function makePipeline(overallStatus: VideoPipeline["overallStatus"], errorMessag
 }
 
 describe("usePipelineStatus", () => {
+  const originalMockFlag = process.env.NEXT_PUBLIC_USE_MOCK;
+
+  beforeAll(() => {
+    process.env.NEXT_PUBLIC_USE_MOCK = "true";
+  });
+
+  afterAll(() => {
+    process.env.NEXT_PUBLIC_USE_MOCK = originalMockFlag;
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
     jest.useRealTimers();
