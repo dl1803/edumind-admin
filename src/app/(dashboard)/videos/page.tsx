@@ -18,7 +18,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TopBarContent } from "@/context/TopBarContext";
 import { useVideos } from "@/hooks/useVideos";
 import { toast } from "@/hooks/useToast";
-import { videoService } from "@/services/video.service";
+import { resolveActionErrorMessage } from "@/hooks/usePipelineActions";
+import { isVideoMockEnabled, videoService } from "@/services/video.service";
 import { formatDateTime } from "@/lib/utils";
 import { PipelineStatusText } from "@/components/video/PipelineStatusText";
 import { VideoThumbnail } from "@/components/video/VideoThumbnail";
@@ -120,31 +121,34 @@ function VideosContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const extendedFiltersEnabled = isVideoMockEnabled();
 
   const [openMenuVideoId, setOpenMenuVideoId] = useState<string | null>(null);
 
   const retryMutation = useMutation({
     mutationFn: (videoId: string) => videoService.retryPipelineStep(videoId),
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["videos"] });
       queryClient.invalidateQueries({ queryKey: ["pipeline", result.videoId] });
       toast.success(result.message);
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Không thể thử lại tiến trình.");
+      toast.error(resolveActionErrorMessage(error, "retry"));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
     },
   });
 
   const query: ListQuery = useMemo(
     () => ({
-      search: searchParams.get("search") || "",
-      course: searchParams.get("course") || "",
+      search: extendedFiltersEnabled ? searchParams.get("search") || "" : "",
+      course: extendedFiltersEnabled ? searchParams.get("course") || "" : "",
       status: parseStatus(searchParams.get("status")),
       sort: (searchParams.get("sort") === "oldest" ? "oldest" : DEFAULT_SORT) as VideoListSort,
       page: parsePositiveInt(searchParams.get("page"), 1),
       pageSize: parsePositiveInt(searchParams.get("pageSize"), DEFAULT_PAGE_SIZE),
     }),
-    [searchParams]
+    [searchParams, extendedFiltersEnabled]
   );
 
   const updateQuery = useCallback(
@@ -225,39 +229,43 @@ function VideosContent() {
       {/* FILTER BAR VỚI SELECT DROPDOWN DÙNG CHUNG BO GÓC MỀM MẠI */}
       <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-xs flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 flex-wrap">
-          <div className="relative flex-1 min-w-[240px] max-w-sm">
-            <MagnifyingGlass
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
-            />
-            <input
-              type="text"
-              value={query.search}
-              onChange={(e) => updateQuery({ search: e.target.value, page: 1 })}
-              placeholder="Tìm tên video, bài học liên kết..."
-              className="w-full pl-8 pr-8 py-2 text-xs bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:border-purple-600 focus:bg-white text-neutral-800 transition"
-            />
-            {query.search && (
-              <button
-                type="button"
-                onClick={() => updateQuery({ search: "", page: 1 })}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 p-0.5"
-                title="Xóa tìm kiếm"
-              >
-                <X size={12} />
-              </button>
-            )}
-          </div>
+          {extendedFiltersEnabled && (
+            <>
+              <div className="relative flex-1 min-w-[240px] max-w-sm">
+                <MagnifyingGlass
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+                />
+                <input
+                  type="text"
+                  value={query.search}
+                  onChange={(e) => updateQuery({ search: e.target.value, page: 1 })}
+                  placeholder="Tìm tên video, bài học liên kết..."
+                  className="w-full pl-8 pr-8 py-2 text-xs bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:border-purple-600 focus:bg-white text-neutral-800 transition"
+                />
+                {query.search && (
+                  <button
+                    type="button"
+                    onClick={() => updateQuery({ search: "", page: 1 })}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 p-0.5"
+                    title="Xóa tìm kiếm"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
 
-          <div className="w-56">
-            <SelectDropdown
-              value={query.course}
-              placeholder="Tất cả khóa học"
-              options={COURSE_OPTIONS}
-              onChange={(val) => updateQuery({ course: val, page: 1 })}
-              fullWidth
-            />
-          </div>
+              <div className="w-56">
+                <SelectDropdown
+                  value={query.course}
+                  placeholder="Tất cả khóa học"
+                  options={COURSE_OPTIONS}
+                  onChange={(val) => updateQuery({ course: val, page: 1 })}
+                  fullWidth
+                />
+              </div>
+            </>
+          )}
 
           <div className="w-52">
             <SelectDropdown
@@ -405,8 +413,8 @@ function VideosContent() {
                                   {row.lessonTitle}
                                 </p>
                               ) : (
-                                <span className="text-[11px] text-amber-600 font-medium block mt-0.5 whitespace-nowrap">
-                                  Chưa liên kết
+                                <span className="text-[11px] text-neutral-400 block mt-0.5 whitespace-nowrap">
+                                  —
                                 </span>
                               )}
                             </div>

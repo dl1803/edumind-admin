@@ -7,6 +7,7 @@ export function useVideos(params: VideoListParams) {
     queryKey: ["videos", params],
     queryFn: () => videoService.getVideos(params),
     placeholderData: keepPreviousData,
+    staleTime: 0,
   });
 }
 

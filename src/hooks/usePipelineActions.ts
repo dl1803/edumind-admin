@@ -23,7 +23,7 @@ const FALLBACK_MESSAGES: Record<PipelineAction, string> = {
   cancel: "Không thể hủy xử lý. Vui lòng thử lại sau.",
 };
 
-function resolveActionErrorMessage(error: unknown, action: PipelineAction): string {
+export function resolveActionErrorMessage(error: unknown, action: PipelineAction): string {
   const apiError = error as ApiErrorLike | null;
   const status = apiError?.response?.status;
   if (status === 404) return "Video không tồn tại hoặc đã bị xóa.";
