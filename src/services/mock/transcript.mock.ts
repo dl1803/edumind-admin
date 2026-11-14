@@ -90,7 +90,7 @@ export async function mockGetTranscript(videoId: string): Promise<Transcript | n
 
   return {
     ...baseInfo,
-    version: MOCK_TRANSCRIPT_VERSIONS[MOCK_TRANSCRIPT_VERSIONS.length - 1].version,
+    version: 1,
     segments: MOCK_SEGMENTS,
   };
 }
