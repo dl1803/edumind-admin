@@ -150,4 +150,40 @@ export interface VideoPipeline {
   completedAt: string | null;
 }
 
+export interface BackendPipelineStep {
+  step: string;
+  status: string;
+  progress?: number | null;
+  error_message?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+}
+
+export interface BackendPipelineStatus {
+  video_id: string;
+  lesson_id?: string | null;
+  lesson_title?: string | null;
+  steps?: BackendPipelineStep[] | null;
+  overall_status: string;
+  error_message?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+}
+
+export interface BackendRetryPipelineResponse {
+  message?: string;
+  video_id: string;
+}
+
+export interface BackendPipelineListResponse {
+  data?: BackendPipelineStatus[];
+  items?: BackendPipelineStatus[];
+  total?: number;
+  page?: number;
+  page_size?: number;
+  pageSize?: number;
+  total_pages?: number;
+  totalPages?: number;
+}
+
 
