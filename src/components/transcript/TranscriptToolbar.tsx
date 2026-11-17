@@ -10,6 +10,8 @@ interface TranscriptToolbarProps {
   autoScroll: boolean;
   onAutoScrollChange: (value: boolean) => void;
   isEdited?: boolean;
+  editedCount?: number;
+  isEditing?: boolean;
 }
 
 export function TranscriptToolbar({
@@ -20,11 +22,12 @@ export function TranscriptToolbar({
   autoScroll,
   onAutoScrollChange,
   isEdited = false,
+  editedCount,
+  isEditing = false,
 }: TranscriptToolbarProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-purple-100 bg-purple-50/20 p-4 shrink-0">
       <div className="flex flex-1 items-center gap-3 min-w-[240px]">
-        {/* Ô tìm kiếm trong phụ đề */}
         <div className="relative flex-1 max-w-xs">
           <MagnifyingGlass
             size={14}
@@ -34,8 +37,17 @@ export function TranscriptToolbar({
             type="text"
             value={keyword}
             onChange={(event) => onKeywordChange(event.target.value)}
-            placeholder="Tìm từ khóa trong phụ đề..."
+            placeholder={
+              isEditing
+                ? "Tìm từ khóa (chỉ tô sáng trong chế độ sửa)..."
+                : "Tìm từ khóa trong phụ đề..."
+            }
             aria-label="Tìm kiếm trong phụ đề"
+            title={
+              isEditing
+                ? "Đang ở chế độ chỉnh sửa: tìm kiếm chỉ tô sáng từ khóa, không ẩn đoạn"
+                : undefined
+            }
             className="w-full rounded-xl border border-neutral-200 bg-white py-1.5 pl-8 pr-8 text-xs text-neutral-800 transition focus:border-purple-500 focus:outline-none"
           />
           {keyword && (
@@ -50,7 +62,6 @@ export function TranscriptToolbar({
           )}
         </div>
 
-        {/* Toggle Tự động cuộn theo video */}
         <label className="flex items-center gap-2 cursor-pointer text-xs text-neutral-600 select-none">
           <input
             type="checkbox"
@@ -63,7 +74,6 @@ export function TranscriptToolbar({
       </div>
 
       <div className="flex items-center gap-3">
-        {/* THỐNG KÊ SỐ ĐOẠN VÀ TỪ */}
         <span className="text-[11px] text-neutral-500 font-sans">
           <strong className="text-neutral-900 font-mono tabular-nums font-semibold">
             {totalSegments}
@@ -73,9 +83,17 @@ export function TranscriptToolbar({
             {totalWords.toLocaleString("vi-VN")}
           </strong>{" "}
           từ
+          {editedCount !== undefined && (
+            <>
+              <span className="text-neutral-300 mx-1">|</span>{" "}
+              <strong className="text-amber-700 font-mono tabular-nums font-semibold">
+                {editedCount}
+              </strong>{" "}
+              đã sửa
+            </>
+          )}
         </span>
 
-        {/* BADGE NGUỒN PHỤ ĐỀ */}
         <span
           className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${
             isEdited
