@@ -1,5 +1,7 @@
 import { MOCK_VIDEOS } from "./videoList.mock";
+import { hasTranscriptTextChanged } from "@/lib/transcript";
 import type {
+  SaveTranscriptResult,
   Transcript,
   TranscriptSegment,
   TranscriptVersion,
@@ -67,11 +69,86 @@ export const MOCK_TRANSCRIPT_VERSIONS: TranscriptVersion[] = [
   { version: 3, createdAt: "2026-08-16T14:05:00+07:00", createdBy: "Trần Quản Trị" },
 ];
 
+const MOCK_CURRENT_EDITOR = "Trần Quản Trị";
+
+const V1_TEXT_OVERRIDES: Record<string, string> = {
+  "seg-07": "Bước này rất quan trọng vì nó cho phép chạy lệnh pai thon từ bất kỳ thư mục nào.",
+  "seg-19": "Tạo tệp mới đặt tên là hello chấm pi rồi gõ dòng lệnh print với nội dung Xin chào.",
+  "seg-35":
+    "Khi gặp lỗi, đừng lo lắng, hãy đọc kỹ thông báo lỗi vì nó chỉ rõ tên lỗi, tên tệp và dòng gây ra sự cố.",
+};
+
+const V2_FIXED_IDS = ["seg-07", "seg-19"];
+
+interface MockVersionRecord {
+  meta: TranscriptVersion;
+  segments: TranscriptSegment[];
+}
+
+const versionStore = new Map<string, MockVersionRecord[]>();
+
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-export async function mockGetTranscript(videoId: string): Promise<Transcript | null> {
+function cloneSegments(segments: TranscriptSegment[]): TranscriptSegment[] {
+  return segments.map((item) => ({ ...item }));
+}
+
+function buildSeedSegments(version: number): TranscriptSegment[] {
+  if (version >= 3) return cloneSegments(MOCK_SEGMENTS);
+  return MOCK_SEGMENTS.map((item) => {
+    const isFixedInV2 = version === 2 && V2_FIXED_IDS.includes(item.id);
+    return {
+      ...item,
+      text: isFixedInV2 ? item.text : V1_TEXT_OVERRIDES[item.id] ?? item.text,
+      edited: isFixedInV2,
+    };
+  });
+}
+
+function findVideo(videoId: string) {
+  return MOCK_VIDEOS.find((item) => item.videoId === videoId);
+}
+
+function getRecords(videoId: string): MockVersionRecord[] {
+  const existing = versionStore.get(videoId);
+  if (existing) return existing;
+  const seeded = MOCK_TRANSCRIPT_VERSIONS.map((meta) => ({
+    meta: { ...meta },
+    segments: buildSeedSegments(meta.version),
+  }));
+  versionStore.set(videoId, seeded);
+  return seeded;
+}
+
+function getEditableRecords(videoId: string): MockVersionRecord[] {
+  const video = findVideo(videoId);
+  if (!video || video.overallStatus !== "completed") {
+    throw new Error("Video chưa có phụ đề để cập nhật.");
+  }
+  return getRecords(videoId);
+}
+
+function appendVersion(
+  records: MockVersionRecord[],
+  segments: TranscriptSegment[]
+): SaveTranscriptResult {
+  const latest = records[records.length - 1];
+  const reindexingTriggered = hasTranscriptTextChanged(latest.segments, segments);
+  const meta: TranscriptVersion = {
+    version: latest.meta.version + 1,
+    createdAt: new Date().toISOString(),
+    createdBy: MOCK_CURRENT_EDITOR,
+  };
+  records.push({ meta, segments: cloneSegments(segments) });
+  return { version: meta.version, reindexingTriggered, segments: cloneSegments(segments) };
+}
+
+export async function mockGetTranscript(
+  videoId: string,
+  version?: number
+): Promise<Transcript | null> {
   await delay(400);
-  const video = MOCK_VIDEOS.find((item) => item.videoId === videoId);
+  const video = findVideo(videoId);
   if (!video) return null;
 
   const baseInfo = {
@@ -88,9 +165,48 @@ export async function mockGetTranscript(videoId: string): Promise<Transcript | n
     return { ...baseInfo, version: 0, segments: [] };
   }
 
+  const records = getRecords(videoId);
+  const record =
+    version === undefined
+      ? records[records.length - 1]
+      : records.find((item) => item.meta.version === version);
+  if (!record) return null;
+
   return {
     ...baseInfo,
-    version: 1,
-    segments: MOCK_SEGMENTS,
+    version: record.meta.version,
+    segments: cloneSegments(record.segments),
   };
+}
+
+export async function mockGetTranscriptVersions(videoId: string): Promise<TranscriptVersion[]> {
+  await delay(300);
+  const video = findVideo(videoId);
+  if (!video || video.overallStatus !== "completed") return [];
+  return getRecords(videoId).map((item) => ({ ...item.meta }));
+}
+
+export async function mockSaveTranscript(
+  videoId: string,
+  segments: TranscriptSegment[]
+): Promise<SaveTranscriptResult> {
+  await delay(600);
+  const records = getEditableRecords(videoId);
+  const normalized = segments.map((item, index) => ({
+    ...item,
+    id: `seg-${String(index + 1).padStart(2, "0")}`,
+    text: item.text.trim(),
+  }));
+  return appendVersion(records, normalized);
+}
+
+export async function mockRestoreTranscriptVersion(
+  videoId: string,
+  version: number
+): Promise<SaveTranscriptResult> {
+  await delay(600);
+  const records = getEditableRecords(videoId);
+  const target = records.find((item) => item.meta.version === version);
+  if (!target) throw new Error("Không tìm thấy phiên bản cần khôi phục.");
+  return appendVersion(records, target.segments);
 }

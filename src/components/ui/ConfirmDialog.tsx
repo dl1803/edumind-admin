@@ -11,6 +11,7 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   destructive?: boolean;
   loading?: boolean;
+  size?: "sm" | "md" | "lg";
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -23,6 +24,7 @@ export function ConfirmDialog({
   cancelLabel = "Quay lại",
   destructive = false,
   loading = false,
+  size = "sm",
   onConfirm,
   onClose,
 }: ConfirmDialogProps) {
@@ -35,11 +37,17 @@ export function ConfirmDialog({
       open={open}
       onClose={handleClose}
       title={title}
-      size="sm"
+      size={size}
       closeOnOverlayClick={!loading}
       footer={
         <>
-          <Button variant="outlined" size="sm" onClick={handleClose} disabled={loading}>
+          <Button
+            variant="outlined"
+            size="sm"
+            onClick={handleClose}
+            disabled={loading}
+            className="h-9 px-4 text-xs font-semibold whitespace-nowrap rounded-xl"
+          >
             {cancelLabel}
           </Button>
           <Button
@@ -47,6 +55,7 @@ export function ConfirmDialog({
             size="sm"
             onClick={onConfirm}
             loading={loading}
+            className="h-9 px-4 text-xs font-semibold whitespace-nowrap rounded-xl"
           >
             {confirmLabel}
           </Button>

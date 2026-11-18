@@ -23,3 +23,10 @@ export interface Transcript {
   previewUrl: string;
   segments: TranscriptSegment[];
 }
+
+export interface SaveTranscriptResult {
+  version: number;
+  reindexingTriggered: boolean;
+  segments: TranscriptSegment[];
+}
+
