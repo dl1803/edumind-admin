@@ -112,16 +112,15 @@ export function SegmentList({
                     </span>
 
                     {isActive && (
-                      <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wide">
+                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200 uppercase tracking-wide shrink-0">
                         Đang phát
                       </span>
                     )}
 
                     {segment.edited && (
-                      <>
-                        {isActive && <span className="text-neutral-300 text-xs">•</span>}
-                        <span className="text-[11px] font-bold text-amber-700">Đã sửa</span>
-                      </>
+                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 uppercase tracking-wide shrink-0">
+                        Đã sửa
+                      </span>
                     )}
                   </div>
                 </div>

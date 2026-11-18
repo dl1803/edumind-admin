@@ -35,11 +35,11 @@ export function VersionPanel({
       className="p-4 bg-white rounded-2xl border border-purple-100 shadow-xs space-y-3"
     >
       <div className="flex items-center justify-between">
-        <h3 className="flex items-center gap-1.5 font-bold text-neutral-900 text-xs">
+        <h3 className="flex items-center gap-1.5 font-semibold text-neutral-900 text-xs">
           <ClockCounterClockwise size={14} weight="bold" className="text-purple-600" />
           <span>Lịch sử phiên bản</span>
         </h3>
-        <span className="text-[11px] text-neutral-500">{versions.length} phiên bản</span>
+        <span className="text-xs text-neutral-500">{versions.length} phiên bản</span>
       </div>
 
       {isLoading ? (
@@ -68,16 +68,19 @@ export function VersionPanel({
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-neutral-900">
+                    <span className="text-xs font-semibold text-neutral-900">
                       Phiên bản {item.version}
                     </span>
                     {isCurrent && (
-                      <span className="text-[11px] font-bold text-emerald-700">Hiện tại</span>
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Hiện tại
+                      </span>
                     )}
                   </div>
-                  <p className="mt-0.5 text-[11px] text-neutral-500">
-                    {item.createdBy} · {formatDateTime(item.createdAt)}
-                  </p>
+                  <div className="mt-1 flex items-center justify-between gap-2 text-xs text-neutral-500">
+                    <span>{item.createdBy}</span>
+                    <span className="shrink-0">{formatDateTime(item.createdAt)}</span>
+                  </div>
                 </button>
               </li>
             );
@@ -85,14 +88,23 @@ export function VersionPanel({
         </ul>
       )}
 
-      {disabledReason && <p className="text-[11px] text-neutral-500">{disabledReason}</p>}
+      {disabledReason && <p className="text-xs text-neutral-500">{disabledReason}</p>}
 
       {isViewingOldVersion && !isDisabled && (
         <div className="flex flex-wrap gap-2 border-t border-neutral-100 pt-3">
-          <Button variant="outlined" size="sm" onClick={() => onSelect(currentVersion)}>
+          <Button
+            variant="outlined"
+            size="sm"
+            className="h-8 px-3 text-xs font-medium rounded-lg"
+            onClick={() => onSelect(currentVersion)}
+          >
             Xem bản hiện tại
           </Button>
-          <Button size="sm" onClick={() => onRestore(selectedVersion)}>
+          <Button
+            size="sm"
+            className="h-8 px-3 text-xs font-medium rounded-lg"
+            onClick={() => onRestore(selectedVersion)}
+          >
             Khôi phục phiên bản này
           </Button>
         </div>

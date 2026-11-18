@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { FocusEvent, KeyboardEvent } from "react";
-import { ArrowCounterClockwise, Play, SpeakerHigh } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, Play, SpeakerHigh, WarningCircle } from "@phosphor-icons/react";
 import { toast } from "@/hooks/useToast";
 import { useTranscriptDraft } from "@/hooks/useTranscriptDraft";
 import { cn } from "@/lib/utils";
@@ -24,10 +24,10 @@ interface SegmentEditorProps {
 }
 
 const ACTION_BUTTON_CLASS =
-  "inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-2 py-1 text-[11px] font-semibold text-neutral-600 transition hover:bg-purple-50 hover:text-purple-700 cursor-pointer";
+  "inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-2 py-0.5 text-xs font-medium text-neutral-700 transition hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 cursor-pointer whitespace-nowrap shrink-0 select-none shadow-2xs";
 
 const TIME_INPUT_CLASS =
-  "w-28 rounded border bg-white px-2 py-0.5 text-center font-mono text-[11px] tabular-nums focus:outline-none";
+  "w-[72px] rounded border bg-white px-1 py-0.5 text-center font-mono text-[11px] tabular-nums focus:outline-none shrink-0";
 
 export function SegmentEditor({ segment, isActive, keyword, canMerge, onSeek }: SegmentEditorProps) {
   const error = useTranscriptDraft((state) => state.errors[segment.id]);
@@ -109,6 +109,21 @@ export function SegmentEditor({ segment, isActive, keyword, canMerge, onSeek }: 
     if (message) toast.error(message);
   };
 
+  const handleRevert = () => {
+    const original = useTranscriptDraft
+      .getState()
+      .baseSegments.find((item) => item.id === segment.id);
+    const target = original ?? segment;
+    setStartInput(formatTranscriptTime(target.startMs));
+    setEndInput(formatTranscriptTime(target.endMs));
+    if (canRevert) {
+      revert(segment.id);
+    } else if (hasTimeError) {
+      setTimeError(segment.id, null);
+    }
+    setIsEditingText(false);
+  };
+
   const commitTiming = () => {
     const startMs = parseTranscriptTime(startInput);
     const endMs = parseTranscriptTime(endInput);
@@ -154,7 +169,7 @@ export function SegmentEditor({ segment, isActive, keyword, canMerge, onSeek }: 
   return (
     <>
       <div className="flex items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
           {isActive ? (
             <span
               className="w-6 h-6 rounded-lg bg-purple-600 text-white flex items-center justify-center shadow-xs shrink-0"
@@ -174,7 +189,7 @@ export function SegmentEditor({ segment, isActive, keyword, canMerge, onSeek }: 
             </button>
           )}
 
-          <div className="flex items-center gap-1" onBlur={handleTimeBlur}>
+          <div className="flex items-center gap-1 shrink-0" onBlur={handleTimeBlur}>
             <input
               type="text"
               value={startInput}
@@ -196,40 +211,29 @@ export function SegmentEditor({ segment, isActive, keyword, canMerge, onSeek }: 
             />
           </div>
 
-          {isActive && (
-            <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wide">
-              Đang phát
-            </span>
-          )}
-          {segment.edited && (
-            <span className="text-[11px] font-bold text-amber-700">Đã sửa</span>
-          )}
-        </div>
-
-        {!isEditingText && (
-          <div className="flex items-center gap-1.5">
-            {canRevert && (
-              <button
-                type="button"
-                onClick={() => revert(segment.id)}
-                className={ACTION_BUTTON_CLASS}
-                title="Hoàn tác thay đổi của đoạn này"
-              >
-                <ArrowCounterClockwise size={12} />
-                <span>Hoàn tác</span>
-              </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {isActive && (
+              <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200 uppercase tracking-wide shrink-0">
+                Đang phát
+              </span>
             )}
-            {canMerge && (
-              <button
-                type="button"
-                onClick={handleMerge}
-                className={ACTION_BUTTON_CLASS}
-                title="Gộp đoạn này với đoạn kế tiếp"
-              >
-                Gộp với đoạn kế
-              </button>
+            {segment.edited && (
+              <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 uppercase tracking-wide shrink-0">
+                Đã sửa
+              </span>
             )}
           </div>
+        </div>
+
+        {!isEditingText && canMerge && (
+          <button
+            type="button"
+            onClick={handleMerge}
+            className={ACTION_BUTTON_CLASS}
+            title="Gộp đoạn này với đoạn kế tiếp"
+          >
+            Gộp với đoạn kế
+          </button>
         )}
       </div>
 
@@ -251,54 +255,127 @@ export function SegmentEditor({ segment, isActive, keyword, canMerge, onSeek }: 
                 : "border-purple-300 focus:border-purple-600"
             )}
           />
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] text-neutral-400">
-              Esc: hủy · Ctrl+Enter: xong · {segment.text.length.toLocaleString("vi-VN")}/
-              {TRANSCRIPT_TEXT_MAX_LENGTH.toLocaleString("vi-VN")}
-            </span>
-            <button
-              type="button"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={handleSplit}
-              className={ACTION_BUTTON_CLASS}
-              title="Tách đoạn tại vị trí con trỏ trong ô nội dung"
-            >
-              Tách tại con trỏ
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={startEditingText}
-          onKeyDown={handleTextBlockKeyDown}
-          title="Bấm để chỉnh sửa nội dung"
-          className="w-full cursor-text rounded-lg border border-transparent px-2 py-1.5 text-left text-xs leading-relaxed text-neutral-800 whitespace-pre-wrap break-words transition hover:border-neutral-200 hover:bg-white/80"
-        >
-          {segment.text.trim() ? (
-            splitByKeyword(segment.text, keyword).map((part, index) =>
-              part.match ? (
-                <mark
-                  key={index}
-                  className="rounded-xs bg-amber-200 text-neutral-900 px-0.5 font-semibold"
+          <div className="flex items-center justify-between gap-2 pt-1 text-xs">
+            <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 min-w-0">
+              <span className="inline-flex items-center gap-1 shrink-0">
+                <kbd className="rounded border border-neutral-200 bg-neutral-100 px-1 py-0.2 font-mono text-[10px] text-neutral-600 shadow-2xs">
+                  Esc
+                </kbd>
+                <span>hủy</span>
+              </span>
+              <span className="text-neutral-300 shrink-0">•</span>
+              <span className="inline-flex items-center gap-1 shrink-0">
+                <kbd className="rounded border border-neutral-200 bg-neutral-100 px-1 py-0.2 font-mono text-[10px] text-neutral-600 shadow-2xs">
+                  Ctrl+Enter
+                </kbd>
+                <span>xong</span>
+              </span>
+              <span className="text-neutral-300 shrink-0">•</span>
+              <span className="font-mono text-neutral-400 text-[11px] tabular-nums shrink-0">
+                {segment.text.length.toLocaleString("vi-VN")}/
+                {TRANSCRIPT_TEXT_MAX_LENGTH.toLocaleString("vi-VN")}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+              {(canRevert || hasTimeError) && (
+                <button
+                  type="button"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={handleRevert}
+                  className={ACTION_BUTTON_CLASS}
+                  title="Hoàn tác thay đổi của đoạn này"
                 >
-                  {part.text}
-                </mark>
-              ) : (
-                <span key={index}>{part.text}</span>
-              )
-            )
-          ) : (
-            <span className="italic text-neutral-400">Chưa có nội dung — bấm để nhập</span>
+                  <ArrowCounterClockwise size={12} />
+                  <span>Hoàn tác</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={handleSplit}
+                className={ACTION_BUTTON_CLASS}
+                title="Tách đoạn tại vị trí con trỏ trong ô nội dung"
+              >
+                Tách tại con trỏ
+              </button>
+            </div>
+          </div>
+          {error && (
+            <p
+              role="alert"
+              className="flex items-center gap-1.5 text-xs font-medium text-error-600 pt-0.5"
+            >
+              <WarningCircle size={14} weight="fill" className="shrink-0 text-error-600" />
+              <span>{error}</span>
+            </p>
           )}
         </div>
-      )}
+      ) : (
+        <>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={startEditingText}
+            onKeyDown={handleTextBlockKeyDown}
+            title="Bấm để chỉnh sửa nội dung"
+            className={cn(
+              "w-full cursor-text rounded-lg border px-2 py-1.5 text-left text-xs leading-relaxed text-neutral-800 whitespace-pre-wrap break-words transition",
+              hasTextError
+                ? "border-error-500 bg-red-50/40 hover:bg-red-50/60"
+                : "border-transparent hover:border-neutral-200 hover:bg-white/80"
+            )}
+          >
+            {segment.text.trim() ? (
+              splitByKeyword(segment.text, keyword).map((part, index) =>
+                part.match ? (
+                  <mark
+                    key={index}
+                    className="rounded-xs bg-amber-200 text-neutral-900 px-0.5 font-semibold"
+                  >
+                    {part.text}
+                  </mark>
+                ) : (
+                  <span key={index}>{part.text}</span>
+                )
+              )
+            ) : (
+              <span className="italic text-neutral-400">Chưa có nội dung — bấm để nhập</span>
+            )}
+          </div>
 
-      {error && (
-        <p role="alert" className="text-[11px] font-medium text-error-600">
-          {error}
-        </p>
+          {(error || canRevert) && (
+            <div className="flex items-center justify-between gap-2 pt-0.5">
+              {error ? (
+                <p
+                  role="alert"
+                  onClick={hasTextError ? startEditingText : undefined}
+                  className={cn(
+                    "flex items-center gap-1.5 text-xs font-medium text-error-600",
+                    hasTextError && "cursor-pointer hover:underline"
+                  )}
+                  title={hasTextError ? "Bấm vào đây để mở ô chỉnh sửa và nhập nội dung" : undefined}
+                >
+                  <WarningCircle size={14} weight="fill" className="shrink-0 text-error-600" />
+                  <span>{error}</span>
+                </p>
+              ) : (
+                <div />
+              )}
+
+              {(canRevert || hasTimeError) && (
+                <button
+                  type="button"
+                  onClick={handleRevert}
+                  className={ACTION_BUTTON_CLASS}
+                  title="Hoàn tác thay đổi của đoạn này"
+                >
+                  <ArrowCounterClockwise size={12} />
+                  <span>Hoàn tác</span>
+                </button>
+              )}
+            </div>
+          )}
+        </>
       )}
     </>
   );
