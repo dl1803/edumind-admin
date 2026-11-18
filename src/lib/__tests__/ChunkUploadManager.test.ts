@@ -265,6 +265,7 @@ describe("ChunkUploadManager", () => {
     await running;
 
     expect(manager.getStatus()).toBe("CANCELLED");
+    expect(videoService.cancelUpload).toHaveBeenCalledTimes(1);
     expect(videoService.cancelUpload).toHaveBeenCalledWith("video-1");
     expect(FakeXhr.instances.every((xhr) => xhr.aborted)).toBe(true);
     const count = FakeXhr.instances.length;
