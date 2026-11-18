@@ -14,7 +14,6 @@ import { useSearchParams } from "next/navigation";
 import {
   ArrowClockwise,
   ArrowCounterClockwise,
-  ArrowLeft,
   Article,
   Code,
   CornersOut,
@@ -28,12 +27,25 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import { TopBarContent } from "@/context/TopBarContext";
-import { useTranscript } from "@/hooks/useTranscript";
+import {
+  useTranscript,
+  useTranscriptVersion,
+  useTranscriptVersions,
+} from "@/hooks/useTranscript";
+import { useTranscriptActions } from "@/hooks/useTranscriptActions";
+import { useTranscriptDraft, useUnsavedChangesWarning } from "@/hooks/useTranscriptDraft";
 import { toast } from "@/hooks/useToast";
-import { filterSegmentsByKeyword, findActiveSegmentId } from "@/lib/transcript";
+import {
+  filterSegmentsByKeyword,
+  findActiveSegmentId,
+  hasTranscriptTextChanged,
+} from "@/lib/transcript";
+import { formatDateTime } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { SegmentList } from "@/components/transcript/SegmentList";
 import { TranscriptToolbar } from "@/components/transcript/TranscriptToolbar";
+import { VersionPanel } from "@/components/transcript/VersionPanel";
 import { VideoSummaryDrawer } from "@/components/video/VideoSummaryDrawer";
 import type { Transcript, TranscriptSegment } from "@/types/transcript.types";
 
@@ -102,10 +114,23 @@ function TranscriptSkeleton() {
 
 interface TranscriptWorkspaceProps {
   transcript: Transcript;
+  segments: TranscriptSegment[];
+  isEditing: boolean;
+  isSegmentsLoading?: boolean;
+  banner?: ReactNode;
+  sidePanel?: ReactNode;
   onOpenSummary: () => void;
 }
 
-function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceProps) {
+function TranscriptWorkspace({
+  transcript,
+  segments,
+  isEditing,
+  isSegmentsLoading = false,
+  banner,
+  sidePanel,
+  onOpenSummary,
+}: TranscriptWorkspaceProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [keyword, setKeyword] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -120,26 +145,60 @@ function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceP
   const totalDuration = duration > 0 ? duration : 560;
 
   const visibleSegments = useMemo(
-    () => filterSegmentsByKeyword(transcript.segments, keyword),
-    [transcript.segments, keyword]
+    () => (isEditing ? segments : filterSegmentsByKeyword(segments, keyword)),
+    [segments, keyword, isEditing]
   );
 
   const totalWords = useMemo(
     () =>
-      transcript.segments.reduce(
+      segments.reduce(
         (acc, item) => acc + item.text.trim().split(/\s+/).filter(Boolean).length,
         0
       ),
-    [transcript.segments]
+    [segments]
   );
+
+  const isViewingOldVersion = Boolean(banner);
+
+  const editedCount = useMemo(
+    () => segments.filter((item) => item.edited).length,
+    [segments]
+  );
+
+  let statusLabel: string;
+  let statusVariant: "amber" | "purple" | "neutral";
+  let toolbarEditedCount: number | undefined;
+
+  if (isViewingOldVersion) {
+    statusLabel = "Bản lưu trữ (chỉ đọc)";
+    statusVariant = "neutral";
+    toolbarEditedCount = undefined;
+  } else if (isEditing) {
+    if (editedCount > 0) {
+      statusLabel = "Đã có chỉnh sửa";
+      statusVariant = "amber";
+      toolbarEditedCount = editedCount;
+    } else {
+      statusLabel = "Chế độ chỉnh sửa";
+      statusVariant = "purple";
+      toolbarEditedCount = undefined;
+    }
+  } else {
+    statusLabel =
+      transcript.version > 1
+        ? `Bản phát hành (v${transcript.version})`
+        : "Bản nhận diện tự động";
+    statusVariant = "purple";
+    toolbarEditedCount = undefined;
+  }
 
   const activeSegment = useMemo(
-    () => transcript.segments.find((item) => item.id === activeId) || null,
-    [transcript.segments, activeId]
+    () => segments.find((item) => item.id === activeId) || null,
+    [segments, activeId]
   );
 
-  // Bộ động cơ phát tự động đồng bộ thời gian (Virtual Playback Engine)
-  // Đảm bảo đồng bộ mượt mà và chính xác 100% cho mọi kịch bản kiểm thử
+  const lastSegmentId = segments.length > 0 ? segments[segments.length - 1].id : null;
+
   useEffect(() => {
     if (!isPlaying) return;
 
@@ -158,12 +217,11 @@ function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceP
     return () => clearInterval(interval);
   }, [isPlaying, totalDuration, playbackRate]);
 
-  // Đồng bộ activeId và phụ đề theo currentTime (hỗ trợ chính xác khoảng lặng)
   useEffect(() => {
     const currentMs = Math.round(currentTime * 1000);
-    const active = findActiveSegmentId(transcript.segments, currentMs);
+    const active = findActiveSegmentId(segments, currentMs);
     setActiveId(active);
-  }, [currentTime, transcript.segments]);
+  }, [currentTime, segments]);
 
   const handleLoadedMetadata = useCallback(() => {
     const video = videoRef.current;
@@ -178,7 +236,7 @@ function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceP
       try {
         video.currentTime = targetSec;
       } catch {
-        // bỏ qua
+        // ignore
       }
     }
     setCurrentTime(targetSec);
@@ -191,9 +249,7 @@ function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceP
       const video = videoRef.current;
       if (video) {
         if (nextPlaying) {
-          video.play().catch(() => {
-            // Virtual engine tiếp quản mượt mà nếu video lỗi nguồn
-          });
+          video.play().catch(() => {});
         } else {
           video.pause();
         }
@@ -211,7 +267,7 @@ function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceP
           try {
             video.currentTime = nextTime;
           } catch {
-            // bỏ qua
+            // ignore
           }
         }
         return nextTime;
@@ -231,7 +287,7 @@ function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceP
         try {
           video.currentTime = targetTime;
         } catch {
-          // bỏ qua
+          // ignore
         }
       }
       setCurrentTime(targetTime);
@@ -271,15 +327,12 @@ function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceP
 
   return (
     <div className={SPLIT_LAYOUT}>
-      {/* PANEL TRÁI (~45%): TRÌNH PHÁT VIDEO ĐỒNG BỘ */}
       <div className="flex flex-col gap-4 self-start">
-        {/* KHUNG PHÁT VIDEO 16:9 SẮC NÉT THEO PROTOTYPE A-09 */}
         <div className="bg-neutral-950 rounded-2xl overflow-hidden border border-neutral-800 shadow-md relative group">
           <div
             className="w-full aspect-video bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 flex flex-col justify-between p-5 text-white relative overflow-hidden cursor-pointer select-none"
             onClick={togglePlay}
           >
-            {/* Watermark Header Video */}
             <div className="flex items-center justify-between text-xs opacity-90 px-4 pt-3.5 pb-2 absolute top-0 inset-x-0 z-10 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
               <span className="font-bold flex items-center gap-1.5 text-purple-300 truncate max-w-[70%]">
                 <Code size={14} weight="fill" />
@@ -304,7 +357,6 @@ function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceP
               </div>
             </div>
 
-            {/* Vùng hiển thị nội dung slide bài giảng mockup chuẩn A-09 */}
             <div className="my-auto font-mono text-xs bg-black/60 p-4 rounded-xl border border-white/10 space-y-1.5 max-w-md mx-auto shadow-lg backdrop-blur-xs pointer-events-none z-10 transition">
               <div className="flex items-center justify-between text-purple-400 pb-1 border-b border-white/10 text-[11px]">
                 <span># Kiểm tra môi trường Python 3.11</span>
@@ -325,7 +377,6 @@ function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceP
               </p>
             </div>
 
-            {/* Thẻ video HTML5 hỗ trợ audio & luồng video mẫu */}
             <video
               ref={videoRef}
               preload="metadata"
@@ -339,7 +390,6 @@ function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceP
               <source src={transcript.previewUrl} type="video/mp4" />
             </video>
 
-            {/* Nút Play to ở giữa màn hình khi tạm dừng */}
             {!isPlaying && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/25 hover:bg-black/35 transition group z-20">
                 <div className="w-14 h-14 rounded-full bg-purple-600/90 text-white flex items-center justify-center text-2xl shadow-lg group-hover:scale-110 transition">
@@ -348,7 +398,6 @@ function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceP
               </div>
             )}
 
-            {/* Phụ đề hiển thị đồng bộ dưới đáy video (Floating Subtitle Bar) */}
             <div className="absolute bottom-3 inset-x-0 text-center px-4 pointer-events-none z-20">
               <span className="inline-block bg-black/85 text-white text-xs px-3.5 py-1.5 rounded-lg border border-white/15 font-medium max-w-[92%] shadow-md whitespace-pre-wrap leading-relaxed">
                 {activeSegment ? activeSegment.text : "— Đang chờ phát —"}
@@ -356,9 +405,7 @@ function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceP
             </div>
           </div>
 
-          {/* THANH ĐIỀU KHIỂN VIDEO (CONTROLS BAR) CHUẨN A-09 */}
           <div className="p-3 bg-neutral-900 border-t border-neutral-800 space-y-2">
-            {/* Scrubber Timeline Bar */}
             <div
               className="w-full h-1.5 bg-neutral-700 rounded-full overflow-hidden cursor-pointer relative"
               onClick={handleScrubberClick}
@@ -400,7 +447,6 @@ function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceP
                 >
                   <ArrowClockwise size={15} />
                 </button>
-                {/* Mốc thời gian JetBrains Mono */}
                 <span className="font-mono text-xs text-neutral-300 tabular-nums">
                   {formatPlayerTime(currentTime)} / {formatPlayerTime(totalDuration)}
                 </span>
@@ -440,7 +486,6 @@ function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceP
           </div>
         </div>
 
-        {/* THÔNG TIN BÀI HỌC VÀ KHÓA HỌC LIÊN KẾT (PHẲNG, CĂN ĐỀU 2 CỘT CHUẨN A-09) */}
         <div className="p-4 bg-white rounded-2xl border border-purple-100 shadow-xs space-y-2.5">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-neutral-900 text-xs">Thông tin bài học liên kết</h3>
@@ -490,9 +535,10 @@ function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceP
             </button>
           </div>
         </div>
+
+        {sidePanel}
       </div>
 
-      {/* PANEL PHẢI (~55%): XEM PHỤ ĐỀ SẠCH SẼ (READ-ONLY) CHUẨN A-09 */}
       <section
         aria-label="Danh sách phụ đề"
         className="flex h-[calc(100vh-10rem)] min-h-[520px] flex-col overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-xs"
@@ -500,14 +546,25 @@ function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceP
         <TranscriptToolbar
           keyword={keyword}
           onKeywordChange={setKeyword}
-          totalSegments={transcript.segments.length}
+          totalSegments={segments.length}
           totalWords={totalWords}
           autoScroll={autoScroll}
           onAutoScrollChange={setAutoScroll}
-          isEdited={transcript.version > 1}
+          statusLabel={statusLabel}
+          statusVariant={statusVariant}
+          editedCount={toolbarEditedCount}
+          isEditing={isEditing}
         />
+        {banner}
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-          {visibleSegments.length === 0 ? (
+          {isSegmentsLoading ? (
+            <div role="status" aria-busy="true" className="space-y-3">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <Skeleton key={index} className="h-20 w-full rounded-xl" />
+              ))}
+              <span className="sr-only">Đang tải phiên bản...</span>
+            </div>
+          ) : visibleSegments.length === 0 ? (
             <div className="py-12 text-center space-y-2">
               <p className="text-xs font-semibold text-neutral-700">
                 Không tìm thấy đoạn phụ đề nào khớp với từ khóa
@@ -523,6 +580,8 @@ function TranscriptWorkspace({ transcript, onOpenSummary }: TranscriptWorkspaceP
               keyword={keyword}
               onSeek={handleSeek}
               autoScroll={autoScroll}
+              editable={isEditing}
+              lastSegmentId={lastSegmentId}
             />
           )}
         </div>
@@ -535,25 +594,146 @@ function TranscriptContent() {
   const searchParams = useSearchParams();
   const videoId = searchParams.get("videoId")?.trim() || null;
   const { data, isLoading, isError } = useTranscript(videoId);
+  const { data: versions, isLoading: isVersionsLoading } = useTranscriptVersions(videoId);
+  const { save, restore } = useTranscriptActions(videoId);
+
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [viewVersion, setViewVersion] = useState<number | null>(null);
+  const [isReindexOpen, setIsReindexOpen] = useState(false);
+  const [restoreTarget, setRestoreTarget] = useState<number | null>(null);
+
+  const initDraft = useTranscriptDraft((state) => state.init);
+  const resetDraft = useTranscriptDraft((state) => state.reset);
+  const revertAll = useTranscriptDraft((state) => state.revertAll);
+  const draftSegments = useTranscriptDraft((state) => state.segments);
+  const dirty = useTranscriptDraft((state) => state.dirty);
+
+  const currentVersion = data?.version ?? 0;
+  const isViewingOldVersion = viewVersion !== null && viewVersion !== currentVersion;
+  const {
+    data: snapshot,
+    isLoading: isSnapshotLoading,
+    isError: isSnapshotError,
+  } = useTranscriptVersion(videoId, isViewingOldVersion ? viewVersion : null);
+
+  useEffect(() => {
+    if (!data || data.segments.length === 0) return;
+    const key = `${data.videoId}:${data.version}`;
+    if (useTranscriptDraft.getState().key === key) return;
+    initDraft(key, data.segments);
+  }, [data, initDraft]);
+
+  useEffect(() => resetDraft, [resetDraft]);
+
+  useEffect(() => {
+    setIsEditing(false);
+    setViewVersion(null);
+  }, [videoId]);
+
+  useEffect(() => {
+    if (!isSnapshotError) return;
+    toast.error("Không tải được phiên bản này. Vui lòng thử lại.");
+    setViewVersion(null);
+  }, [isSnapshotError]);
+
+  useUnsavedChangesWarning(dirty);
+
+  const selectedMeta = versions?.find((item) => item.version === viewVersion);
+
+  const displaySegments = isEditing
+    ? draftSegments
+    : isViewingOldVersion
+    ? snapshot?.segments ?? []
+    : data?.segments ?? [];
+
+  const lockReason = dirty
+    ? "Lưu hoặc hủy thay đổi hiện tại trước khi xem phiên bản khác."
+    : save.isPending
+    ? "Đang lưu thay đổi..."
+    : restore.isPending
+    ? "Đang khôi phục phiên bản..."
+    : undefined;
+
+  const handleStartEditing = () => {
+    setViewVersion(null);
+    setIsEditing(true);
+  };
+
+  const handleCancelEditing = () => {
+    revertAll();
+    setIsEditing(false);
+  };
+
+  const submitSave = () => {
+    save.mutate(useTranscriptDraft.getState().segments, {
+      onSuccess: () => setIsEditing(false),
+      onSettled: () => setIsReindexOpen(false),
+    });
+  };
+
+  const handleSave = () => {
+    const { segments, baseSegments, errors } = useTranscriptDraft.getState();
+    const invalidCount = Object.keys(errors).length;
+    if (invalidCount > 0) {
+      toast.error(`Còn ${invalidCount} đoạn chưa hợp lệ. Vui lòng sửa trước khi lưu.`);
+      return;
+    }
+    if (hasTranscriptTextChanged(baseSegments, segments)) {
+      setIsReindexOpen(true);
+      return;
+    }
+    submitSave();
+  };
+
+  const handleSelectVersion = (version: number) => {
+    setIsEditing(false);
+    setViewVersion(version === currentVersion ? null : version);
+  };
+
+  const handleConfirmRestore = () => {
+    if (restoreTarget === null) return;
+    restore.mutate(restoreTarget, {
+      onSuccess: () => setViewVersion(null),
+      onSettled: () => setRestoreTarget(null),
+    });
+  };
 
   const topBar = (
     <TopBarContent
       breadcrumb={
         <div className="flex items-center gap-2 text-xs">
-          <Link
-            href="/videos"
-            className="font-medium text-neutral-500 transition hover:text-purple-700"
-          >
-            Video &amp; Xử lý AI
-          </Link>
+          {isEditing ? (
+            <span
+              className="font-medium text-neutral-400 cursor-not-allowed"
+              title="Đang ở chế độ chỉnh sửa. Vui lòng lưu hoặc hủy thay đổi trước khi chuyển trang."
+            >
+              Video &amp; Xử lý AI
+            </span>
+          ) : (
+            <Link
+              href="/videos"
+              className="font-medium text-neutral-500 transition hover:text-purple-700"
+            >
+              Video &amp; Xử lý AI
+            </Link>
+          )}
           <span className="text-neutral-300">/</span>
-          <Link
-            href="/videos"
-            className="font-medium text-neutral-500 transition hover:text-purple-700"
-          >
-            Kho video bài học
-          </Link>
+          {isEditing ? (
+            <span
+              className="font-medium text-neutral-400 cursor-not-allowed"
+              title="Đang ở chế độ chỉnh sửa. Vui lòng lưu hoặc hủy thay đổi trước khi chuyển trang."
+            >
+              Kho video bài học
+            </span>
+          ) : (
+            <Link
+              href="/videos"
+              className="font-medium text-neutral-500 transition hover:text-purple-700"
+            >
+              Kho video bài học
+            </Link>
+          )}
           <span className="text-neutral-300">/</span>
           <span className="font-bold text-neutral-900">Duyệt phụ đề</span>
           <span className="text-neutral-300">/</span>
@@ -565,30 +745,61 @@ function TranscriptContent() {
       actions={
         <div className="flex items-center gap-3">
           {videoId && (
-            <Link
-              href={`/videos/pipeline?videoId=${encodeURIComponent(videoId)}`}
-              className="inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-semibold text-neutral-700 hover:text-purple-700 bg-white border border-neutral-200 rounded-xl hover:bg-purple-50 transition"
-              title="Xem lại tiến trình xử lý video này"
-            >
-              <GitCommit size={14} className="text-purple-600" />
-              <span>Xem tiến trình</span>
-            </Link>
+            isEditing ? (
+              <span
+                className="inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-semibold text-neutral-400 bg-neutral-100 border border-neutral-200 rounded-xl cursor-not-allowed opacity-60"
+                title="Đang ở chế độ chỉnh sửa. Vui lòng lưu hoặc hủy thay đổi trước khi chuyển trang."
+              >
+                <GitCommit size={14} className="text-neutral-400" />
+                <span>Xem tiến trình</span>
+              </span>
+            ) : (
+              <Link
+                href={`/videos/pipeline?videoId=${encodeURIComponent(videoId)}`}
+                className="inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-semibold text-neutral-700 hover:text-purple-700 bg-white border border-neutral-200 rounded-xl hover:bg-purple-50 transition"
+                title="Xem lại tiến trình xử lý video này"
+              >
+                <GitCommit size={14} className="text-purple-600" />
+                <span>Xem tiến trình</span>
+              </Link>
+            )
           )}
 
-          {/* Nút Chỉnh sửa phụ đề (Nebula Gradient h-9 px-4 chuẩn Design System) */}
-          <button
-            type="button"
-            onClick={() => {
-              toast.info(
-                "Chức năng chỉnh sửa phụ đề và cập nhật Tri thức AI sẽ được kích hoạt tại Ngày 44 theo kế hoạch."
-              );
-            }}
-            className="inline-flex items-center gap-2 h-9 px-4 rounded-xl text-white grad-nebula shadow-nebula hover:opacity-95 font-bold text-xs transition cursor-pointer"
-            title="Chuyển sang chế độ chỉnh sửa phụ đề"
-          >
-            <PencilSimple size={14} weight="bold" />
-            <span>Chỉnh sửa phụ đề</span>
-          </button>
+          {isEditing ? (
+            <>
+              <button
+                type="button"
+                onClick={handleCancelEditing}
+                disabled={save.isPending}
+                className="inline-flex items-center h-9 px-3.5 text-xs font-semibold text-neutral-600 hover:text-neutral-900 bg-white border border-neutral-200 rounded-xl hover:bg-neutral-50 transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Hủy thay đổi
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={!dirty || save.isPending}
+                className="inline-flex items-center gap-2 h-9 px-4 rounded-xl text-white grad-nebula shadow-nebula hover:opacity-95 font-bold text-xs transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <span>{save.isPending ? "Đang lưu..." : "Lưu thay đổi phụ đề"}</span>
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={handleStartEditing}
+              disabled={isViewingOldVersion || !data || data.segments.length === 0}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-xl text-white grad-nebula shadow-nebula hover:opacity-95 font-bold text-xs transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+              title={
+                isViewingOldVersion
+                  ? "Đang xem phiên bản cũ. Quay lại bản hiện tại để chỉnh sửa."
+                  : "Chuyển sang chế độ chỉnh sửa phụ đề"
+              }
+            >
+              <PencilSimple size={14} weight="bold" />
+              <span>Chỉnh sửa phụ đề</span>
+            </button>
+          )}
         </div>
       }
     />
@@ -644,10 +855,59 @@ function TranscriptContent() {
       {topBar}
       <TranscriptWorkspace
         transcript={data}
+        segments={displaySegments}
+        isEditing={isEditing}
+        isSegmentsLoading={isViewingOldVersion && isSnapshotLoading}
+        banner={
+          isViewingOldVersion ? (
+            <div
+              role="status"
+              className="flex items-center justify-between gap-4 shrink-0 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800"
+            >
+              <span className="font-semibold">Đang xem phiên bản {viewVersion} (chỉ đọc)</span>
+              {selectedMeta && (
+                <span className="text-amber-700 shrink-0">
+                  {selectedMeta.createdBy} · {formatDateTime(selectedMeta.createdAt)}
+                </span>
+              )}
+            </div>
+          ) : null
+        }
+        sidePanel={
+          <VersionPanel
+            versions={versions ?? []}
+            currentVersion={currentVersion}
+            selectedVersion={viewVersion ?? currentVersion}
+            isLoading={isVersionsLoading}
+            disabledReason={lockReason}
+            onSelect={handleSelectVersion}
+            onRestore={setRestoreTarget}
+          />
+        }
         onOpenSummary={() => setIsSummaryOpen(true)}
       />
 
-      {/* BOTTOM DRAWER CAO: EDUAI TÓM TẮT BÀI GIẢNG */}
+      <ConfirmDialog
+        open={isReindexOpen}
+        title="Lưu thay đổi phụ đề"
+        description="Nội dung lời thoại bài giảng đã được chỉnh sửa. Bạn có muốn lưu các thay đổi này và đồng bộ dữ liệu mới cho AI Trợ giảng không?"
+        confirmLabel="Lưu & Đồng bộ"
+        cancelLabel="Hủy bỏ"
+        loading={save.isPending}
+        onConfirm={submitSave}
+        onClose={() => setIsReindexOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={restoreTarget !== null}
+        title="Khôi phục phiên bản"
+        description={`Nội dung phiên bản ${restoreTarget ?? ""} sẽ được tạo thành phiên bản mới nhất. Các phiên bản hiện có vẫn được giữ lại.`}
+        confirmLabel="Khôi phục"
+        loading={restore.isPending}
+        onConfirm={handleConfirmRestore}
+        onClose={() => setRestoreTarget(null)}
+      />
+
       <VideoSummaryDrawer
         video={{
           videoId: data.videoId,
