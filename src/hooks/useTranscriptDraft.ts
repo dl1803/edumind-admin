@@ -60,13 +60,17 @@ function derive(
   structuralIds: FlagMap,
   timeErrors: Record<string, string>
 ): DraftDerived {
-  const dirty = isTranscriptDirty(base, segments);
+  const dirty = isTranscriptDirty(base, segments) || Object.keys(timeErrors).length > 0;
   const keptStructural = dirty ? structuralIds : {};
   const baseById = new Map(base.map((item) => [item.id, item]));
   const revertableIds: FlagMap = {};
   segments.forEach((item) => {
     const original = baseById.get(item.id);
-    if (original && !keptStructural[item.id] && isSegmentChanged(original, item)) {
+    if (
+      original &&
+      !keptStructural[item.id] &&
+      (isSegmentChanged(original, item) || Boolean(timeErrors[item.id]))
+    ) {
       revertableIds[item.id] = true;
     }
   });
@@ -185,7 +189,7 @@ export const useTranscriptDraft = create<TranscriptDraftState>((set, get) => {
 
     revert: (segmentId) => {
       const state = get();
-      if (!state.revertableIds[segmentId]) return;
+      if (!state.revertableIds[segmentId] && !state.timeErrors[segmentId]) return;
       const original = state.baseSegments.find((item) => item.id === segmentId);
       if (!original) return;
       const segments = state.segments.map((item) =>
@@ -206,9 +210,14 @@ export function useUnsavedChangesWarning(active: boolean) {
     if (!active) return;
     const handler = (event: BeforeUnloadEvent) => {
       event.preventDefault();
-      event.returnValue = "";
+      event.returnValue = "Có thay đổi chưa lưu";
+      return "Có thay đổi chưa lưu";
     };
     window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
+    window.onbeforeunload = handler;
+    return () => {
+      window.removeEventListener("beforeunload", handler);
+      window.onbeforeunload = null;
+    };
   }, [active]);
 }
