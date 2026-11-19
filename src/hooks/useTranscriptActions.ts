@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
 import { transcriptService } from "@/services/transcript.service";
+import { TranscriptConflictError } from "@/lib/transcript";
 import type {
   SaveTranscriptResult,
   Transcript,
@@ -32,11 +33,14 @@ export function useTranscriptActions(videoId: string | null) {
       applyResult(result);
       toast.success(
         result.reindexingTriggered
-          ? "Transcript đã cập nhật. Pipeline đang xử lý lại."
-          : "Đã lưu."
+          ? "Đã lưu phụ đề. Hệ thống đang đồng bộ dữ liệu cho AI."
+          : "Đã lưu thay đổi phụ đề."
       );
     },
-    onError: () => toast.error("Không thể lưu phụ đề. Vui lòng thử lại sau."),
+    onError: (error) => {
+      if (error instanceof TranscriptConflictError) return;
+      toast.error("Không thể lưu phụ đề. Vui lòng thử lại sau.");
+    },
   });
 
   const restore = useMutation({
