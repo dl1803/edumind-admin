@@ -19,8 +19,15 @@ export function useTranscriptActions(videoId: string | null) {
   };
 
   const save = useMutation({
-    mutationFn: (segments: TranscriptSegment[]) =>
-      transcriptService.saveTranscript(normalizedId as string, segments),
+    mutationFn: (segments: TranscriptSegment[]) => {
+      const current = queryClient.getQueryData<Transcript | null>(["transcript", normalizedId]);
+      return transcriptService.saveTranscript(
+        normalizedId as string,
+        segments,
+        current?.version ?? 0,
+        current?.transcriptId
+      );
+    },
     onSuccess: (result) => {
       applyResult(result);
       toast.success(

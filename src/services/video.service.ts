@@ -131,7 +131,7 @@ export function mapVideoListItem(raw: BackendPipelineStatus): VideoListItem {
   };
 }
 
-async function fetchPipelineStatus(videoId: string): Promise<VideoPipeline | null> {
+export async function fetchPipelineStatus(videoId: string): Promise<VideoPipeline | null> {
   try {
     const response = await apiClient.get<unknown>(
       `/admin/pipeline/${encodeURIComponent(videoId)}/status`

@@ -30,3 +30,23 @@ export interface SaveTranscriptResult {
   segments: TranscriptSegment[];
 }
 
+export interface BackendTranscriptSegment {
+  start?: number | null;
+  end?: number | null;
+  text?: string | null;
+}
+
+export interface BackendTranscriptResponse {
+  transcript_id?: string | null;
+  lesson_id?: string | null;
+  version?: number | null;
+  segments?: BackendTranscriptSegment[] | null;
+  hls_stream_url?: string | null;
+}
+
+export interface BackendUpdateTranscriptResponse {
+  message?: string;
+  reindexing_triggered?: boolean;
+}
+
+
