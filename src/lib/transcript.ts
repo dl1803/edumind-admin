@@ -221,3 +221,12 @@ export function mergeWithNext(
   };
 }
 
+export class TranscriptConflictError extends Error {
+  constructor(message = "Transcript đã được cập nhật bởi phiên bản mới hơn.") {
+    super(message);
+    this.name = "TranscriptConflictError";
+    Object.setPrototypeOf(this, TranscriptConflictError.prototype);
+  }
+}
+
+

@@ -1,5 +1,5 @@
 import { MOCK_VIDEOS } from "./videoList.mock";
-import { hasTranscriptTextChanged } from "@/lib/transcript";
+import { TranscriptConflictError, hasTranscriptTextChanged } from "@/lib/transcript";
 import type {
   SaveTranscriptResult,
   Transcript,
@@ -188,10 +188,13 @@ export async function mockGetTranscriptVersions(videoId: string): Promise<Transc
 
 export async function mockSaveTranscript(
   videoId: string,
-  segments: TranscriptSegment[]
+  segments: TranscriptSegment[],
+  baseVersion: number
 ): Promise<SaveTranscriptResult> {
   await delay(600);
   const records = getEditableRecords(videoId);
+  const latest = records[records.length - 1];
+  if (baseVersion !== latest.meta.version) throw new TranscriptConflictError();
   const normalized = segments.map((item, index) => ({
     ...item,
     id: `seg-${String(index + 1).padStart(2, "0")}`,

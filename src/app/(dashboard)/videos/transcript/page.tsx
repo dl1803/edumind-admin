@@ -39,6 +39,7 @@ import {
   filterSegmentsByKeyword,
   findActiveSegmentId,
   hasTranscriptTextChanged,
+  TranscriptConflictError,
 } from "@/lib/transcript";
 import { formatDateTime } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -187,7 +188,9 @@ function TranscriptWorkspace({
     statusLabel =
       transcript.version > 1
         ? `Bản phát hành (v${transcript.version})`
-        : "Bản nhận diện tự động";
+        : transcript.version === 1
+          ? "Bản nhận diện tự động"
+          : "Bản hiện hành";
     statusVariant = "purple";
     toolbarEditedCount = undefined;
   }
@@ -593,8 +596,12 @@ function TranscriptWorkspace({
 function TranscriptContent() {
   const searchParams = useSearchParams();
   const videoId = searchParams.get("videoId")?.trim() || null;
-  const { data, isLoading, isError } = useTranscript(videoId);
-  const { data: versions, isLoading: isVersionsLoading } = useTranscriptVersions(videoId);
+  const { data, isLoading, isError, refetch: refetchTranscript } = useTranscript(videoId);
+  const {
+    data: versions,
+    isLoading: isVersionsLoading,
+    refetch: refetchVersions,
+  } = useTranscriptVersions(videoId);
   const { save, restore } = useTranscriptActions(videoId);
 
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
@@ -602,6 +609,7 @@ function TranscriptContent() {
   const [viewVersion, setViewVersion] = useState<number | null>(null);
   const [isReindexOpen, setIsReindexOpen] = useState(false);
   const [restoreTarget, setRestoreTarget] = useState<number | null>(null);
+  const [isConflictReloading, setIsConflictReloading] = useState(false);
 
   const initDraft = useTranscriptDraft((state) => state.init);
   const resetDraft = useTranscriptDraft((state) => state.reset);
@@ -665,11 +673,33 @@ function TranscriptContent() {
     setIsEditing(false);
   };
 
+  const isConflictOpen = save.error instanceof TranscriptConflictError;
+
   const submitSave = () => {
     save.mutate(useTranscriptDraft.getState().segments, {
-      onSuccess: () => setIsEditing(false),
+      onSuccess: (result) => {
+        initDraft(`${videoId}:${result.version}`, result.segments);
+        setIsEditing(false);
+      },
       onSettled: () => setIsReindexOpen(false),
     });
+  };
+
+  const handleConflictReload = async () => {
+    setIsConflictReloading(true);
+    try {
+      const result = await refetchTranscript();
+      if (result.isError || !result.data) {
+        toast.error("Không thể tải lại phụ đề. Vui lòng thử lại.");
+        return;
+      }
+      initDraft(`${result.data.videoId}:${result.data.version}`, result.data.segments);
+      void refetchVersions();
+      setIsEditing(false);
+      save.reset();
+    } finally {
+      setIsConflictReloading(false);
+    }
   };
 
   const handleSave = () => {
@@ -896,6 +926,19 @@ function TranscriptContent() {
         loading={save.isPending}
         onConfirm={submitSave}
         onClose={() => setIsReindexOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={isConflictOpen}
+        title="Phụ đề có phiên bản mới"
+        description="Đã có phiên bản phụ đề mới hơn cho bài giảng này. Bạn muốn tải lại bản mới nhất hay giữ lại bản nháp đang soạn?"
+        confirmLabel="Tải lại"
+        cancelLabel="Giữ bản nháp"
+        destructive={true}
+        loading={isConflictReloading}
+        size="md"
+        onConfirm={handleConflictReload}
+        onClose={() => save.reset()}
       />
 
       <ConfirmDialog
