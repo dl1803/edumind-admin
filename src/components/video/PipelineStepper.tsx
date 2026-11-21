@@ -133,7 +133,13 @@ export function PipelineStepper({ steps }: PipelineStepperProps) {
                 </p>
               ) : (
                 <p className="text-[11px] text-neutral-400 pt-2 border-t border-neutral-100">
-                  Chưa bắt đầu
+                  {status === "completed"
+                    ? "Đã hoàn tất"
+                    : status === "processing"
+                    ? "Đang thực hiện"
+                    : status === "failed"
+                    ? "Đã dừng do lỗi"
+                    : "Chưa bắt đầu"}
                 </p>
               )}
             </li>

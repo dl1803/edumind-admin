@@ -1,7 +1,11 @@
 import axios from "axios";
 import { apiClient } from "./api-client";
 import { PaginatedResponse } from "@/types/api.types";
-import { PIPELINE_STEP_ORDER, findFailedPipelineStep } from "@/lib/pipeline";
+import {
+  PIPELINE_STEP_ORDER,
+  findFailedPipelineStep,
+  humanizePipelineStepMessage,
+} from "@/lib/pipeline";
 import { mockGetVideos } from "./mock/videoList.mock";
 import {
   mockCancelPipeline,
@@ -120,6 +124,13 @@ export function mapPipelineResponse(raw: BackendPipelineStatus | null | undefine
 
 export function mapVideoListItem(raw: BackendPipelineStatus): VideoListItem {
   const pipeline = mapPipelineResponse(raw);
+  const resolvedStartedAt =
+    pipeline.startedAt ||
+    pipeline.steps.find((s) => Boolean(s.startedAt))?.startedAt ||
+    (raw as any).created_at ||
+    (raw as any).createdAt ||
+    null;
+
   return {
     videoId: pipeline.videoId,
     lessonId: pipeline.lessonId,
@@ -127,7 +138,7 @@ export function mapVideoListItem(raw: BackendPipelineStatus): VideoListItem {
     overallStatus: pipeline.overallStatus,
     thumbnailUrl: null,
     durationSec: null,
-    uploadedAt: pipeline.startedAt ?? "",
+    uploadedAt: resolvedStartedAt ?? "",
   };
 }
 
@@ -271,7 +282,8 @@ export const videoService = {
       { params: { step: targetStep } }
     );
     const raw = unwrap<BackendRetryPipelineResponse>(response.data, "video_id");
-    const message = raw.message || (response.data as { message?: string })?.message || "Đã bắt đầu xử lý lại tiến trình.";
+    const rawMessage = raw.message || (response.data as { message?: string })?.message;
+    const message = humanizePipelineStepMessage(rawMessage, targetStep);
     return { message, videoId: raw.video_id };
   },
 

@@ -74,4 +74,20 @@ describe("videoService mappers & flags", () => {
     expect(item.durationSec).toBeNull();
     expect(item.uploadedAt).toBe("2026-11-13T10:00:00Z");
   });
+
+  it("mapVideoListItem fallback lấy started_at từ steps khi root started_at bị null", () => {
+    const raw: BackendPipelineStatus = {
+      video_id: "vid-test-04",
+      lesson_id: "les-04",
+      lesson_title: "Bài học 4",
+      overall_status: "processing",
+      started_at: null,
+      steps: [
+        { step: "upload", status: "completed", started_at: "2026-11-20T23:38:03Z" },
+      ],
+    };
+
+    const item = mapVideoListItem(raw);
+    expect(item.uploadedAt).toBe("2026-11-20T23:38:03Z");
+  });
 });

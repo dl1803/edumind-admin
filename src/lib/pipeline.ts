@@ -74,3 +74,20 @@ export function findFailedPipelineStep(
   }
   return null;
 }
+
+export function humanizePipelineStepMessage(
+  message: string | undefined,
+  step?: PipelineStepName
+): string {
+  if (!message) {
+    return step
+      ? `Đã bắt đầu xử lý lại bước ${PIPELINE_STEP_LABELS[step]}.`
+      : "Đã bắt đầu xử lý lại tiến trình.";
+  }
+  return message
+    .replace(/\btranscode\b/gi, PIPELINE_STEP_LABELS.transcode)
+    .replace(/\btranscribe\b/gi, PIPELINE_STEP_LABELS.transcribe)
+    .replace(/\bindex\b/gi, PIPELINE_STEP_LABELS.index)
+    .replace(/\bupload\b/gi, PIPELINE_STEP_LABELS.upload)
+    .replace(/\bstt\b/gi, PIPELINE_STEP_LABELS.transcribe);
+}

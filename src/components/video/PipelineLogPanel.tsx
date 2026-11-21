@@ -51,12 +51,21 @@ function buildTimelineEvents(pipeline: VideoPipeline): TimelineEvent[] {
         message: "Bắt đầu xử lý",
         tone: "neutral",
       });
+    } else if (step.status === "processing") {
+      events.push({
+        key: `${name}-start`,
+        timestamp: null,
+        order: stepIndex * 10 + 1,
+        stage,
+        message: "Bắt đầu xử lý",
+        tone: "neutral",
+      });
     }
 
-    if (step.status === "completed" && completedAt !== null) {
+    if (step.status === "completed") {
       events.push({
         key: `${name}-done`,
-        timestamp: completedAt,
+        timestamp: completedAt ?? startedAt,
         order: stepIndex * 10 + 2,
         stage,
         message: "Hoàn tất",
