@@ -841,16 +841,16 @@ function TranscriptContent() {
         {topBar}
         <MessageCard
           icon={<WarningCircle size={28} weight="fill" />}
-          title={isError ? "Lỗi tải dữ liệu phụ đề" : "Không tìm thấy thông tin video"}
+          title={isError ? "Lỗi tải dữ liệu phụ đề" : "Chưa có dữ liệu phụ đề"}
           description={
             isError
               ? "Đã xảy ra lỗi khi tải dữ liệu phụ đề. Vui lòng thử lại sau."
               : videoId
-              ? "Mã video không tồn tại hoặc đã bị xóa khỏi hệ thống."
+              ? "Video này chưa có phụ đề hoặc bài học chưa hoàn tất bước tạo phụ đề."
               : "Vui lòng chọn một video từ kho bài học để duyệt phụ đề."
           }
-          actionHref="/videos"
-          actionLabel="Về kho video bài học"
+          actionHref={videoId ? `/videos/pipeline?videoId=${encodeURIComponent(videoId)}` : "/videos"}
+          actionLabel={videoId ? "Xem tiến trình xử lý" : "Về kho video bài học"}
         />
       </>
     );
@@ -871,7 +871,7 @@ function TranscriptContent() {
         {topBar}
         <MessageCard
           icon={<Article size={28} weight="fill" />}
-          title="Video chưa được phiên âm"
+          title="Video chưa có phụ đề"
           description="Phụ đề sẽ xuất hiện sau khi video hoàn tất bước tạo phụ đề."
           actionHref={`/videos/pipeline?videoId=${encodeURIComponent(data.videoId)}`}
           actionLabel="Xem tiến trình xử lý"

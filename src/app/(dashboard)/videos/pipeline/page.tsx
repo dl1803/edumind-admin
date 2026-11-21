@@ -100,13 +100,22 @@ function PipelineContent() {
   const isFailed = status === "failed";
   const canCancel = status === "uploading" || status === "processing";
   const canRetry = isFailed;
+
+  const resolvedStartedAt =
+    data?.startedAt ||
+    data?.steps?.find((s) => Boolean(s.startedAt))?.startedAt ||
+    null;
+  const resolvedCompletedAt =
+    data?.completedAt ||
+    (isCompleted ? data?.steps?.slice().reverse().find((s) => Boolean(s.completedAt))?.completedAt : null);
   const totalElapsed =
-    isCompleted && data ? formatElapsedDuration(data.startedAt, data.completedAt) : null;
+    isCompleted && data ? formatElapsedDuration(resolvedStartedAt, resolvedCompletedAt) : null;
+
   const failedStepName =
     isFailed && data ? findFailedPipelineStep(data.steps)?.step.step : undefined;
   const cancelHint = canCancel
-    ? "Hủy tiến trình xử lý hiện tại"
-    : "Chỉ hủy được khi video đang tải lên hoặc đang xử lý";
+    ? "Dừng xử lý video này"
+    : "Chỉ dừng được khi video đang tải lên hoặc đang xử lý";
   const retryHint = canRetry
     ? "Thử lại bước xử lý gặp sự cố"
     : "Chỉ thử lại được khi video gặp lỗi";
@@ -170,7 +179,7 @@ function PipelineContent() {
                     disabled={!canCancel || cancel.isPending}
                     className="inline-flex items-center justify-center h-9 px-3.5 rounded-xl border border-neutral-200 bg-white text-neutral-700 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 text-xs font-semibold transition cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
                   >
-                    Hủy tiến trình
+                    Dừng xử lý
                   </button>
                 </span>
                 <span title={retryHint} className="inline-flex">
@@ -202,14 +211,14 @@ function PipelineContent() {
                 <span>
                   Bắt đầu xử lý:{" "}
                   <strong className="font-mono font-medium text-neutral-800 tabular-nums">
-                    {formatDateTime(data.startedAt ?? undefined)}
+                    {resolvedStartedAt ? formatDateTime(resolvedStartedAt) : "—"}
                   </strong>
                 </span>
-                {data.completedAt && (
+                {resolvedCompletedAt && (
                   <span>
                     Hoàn tất lúc:{" "}
                     <strong className="font-mono font-medium text-neutral-800 tabular-nums">
-                      {formatDateTime(data.completedAt)}
+                      {formatDateTime(resolvedCompletedAt)}
                     </strong>
                   </span>
                 )}
@@ -237,10 +246,12 @@ function PipelineContent() {
 
       <ConfirmDialog
         open={isCancelDialogOpen}
-        title="Hủy xử lý video?"
-        description="Hành động không thể hoàn tác."
-        confirmLabel="Xác nhận"
+        title="Dừng xử lý video?"
+        description="Hệ thống sẽ dừng quá trình xử lý video này. Video vẫn được lưu an toàn và bạn có thể bấm xử lý lại bất cứ lúc nào. Bạn có chắc chắn muốn dừng không?"
+        confirmLabel="Dừng xử lý"
+        cancelLabel="Tiếp tục xử lý"
         destructive
+        size="md"
         loading={cancel.isPending}
         onConfirm={() =>
           cancel.mutate(undefined, { onSettled: () => setIsCancelDialogOpen(false) })

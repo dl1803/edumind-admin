@@ -39,7 +39,9 @@ describe("PipelineStepper", () => {
     expect(percentEl).toBeInTheDocument();
     expect(screen.getAllByText("Chờ lượt")).toHaveLength(2);
     expect(screen.getAllByText("0%")).toHaveLength(2);
-    expect(screen.getAllByText("Chưa bắt đầu")).toHaveLength(4);
+    expect(screen.getByText("Đã hoàn tất")).toBeInTheDocument();
+    expect(screen.getByText("Đang thực hiện")).toBeInTheDocument();
+    expect(screen.getAllByText("Chưa bắt đầu")).toHaveLength(2);
     expect(screen.getAllByRole("progressbar")).toHaveLength(4);
     expect(uploadBar).toHaveAttribute("aria-valuenow", "100");
     expect(progressBar).toHaveAttribute("aria-valuenow", "30");

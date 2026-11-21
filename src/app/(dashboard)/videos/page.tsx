@@ -53,13 +53,6 @@ const STATUS_OPTIONS = [
   { label: "Lỗi", value: "failed" },
 ];
 
-const COURSE_OPTIONS = [
-  { label: "Tất cả khóa học", value: "" },
-  { label: "Nhập môn Lập trình Python", value: "Nhập môn Lập trình Python" },
-  { label: "Xây dựng Ứng dụng RAG Thông minh", value: "Xây dựng Ứng dụng RAG Thông minh" },
-  { label: "Thiết kế Giao diện UI/UX Nâng cao", value: "Thiết kế Giao diện UI/UX Nâng cao" },
-];
-
 const PAGE_SIZE_OPTIONS = [
   { label: "5", value: "5" },
   { label: "10", value: "10" },
@@ -121,7 +114,6 @@ function VideosContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const extendedFiltersEnabled = isVideoMockEnabled();
 
   const [openMenuVideoId, setOpenMenuVideoId] = useState<string | null>(null);
 
@@ -141,14 +133,14 @@ function VideosContent() {
 
   const query: ListQuery = useMemo(
     () => ({
-      search: extendedFiltersEnabled ? searchParams.get("search") || "" : "",
-      course: extendedFiltersEnabled ? searchParams.get("course") || "" : "",
+      search: searchParams.get("search") || "",
+      course: "",
       status: parseStatus(searchParams.get("status")),
       sort: (searchParams.get("sort") === "oldest" ? "oldest" : DEFAULT_SORT) as VideoListSort,
       page: parsePositiveInt(searchParams.get("page"), 1),
       pageSize: parsePositiveInt(searchParams.get("pageSize"), DEFAULT_PAGE_SIZE),
     }),
-    [searchParams, extendedFiltersEnabled]
+    [searchParams]
   );
 
   const updateQuery = useCallback(
@@ -156,7 +148,6 @@ function VideosContent() {
       const next = { ...query, ...patch };
       const nextParams = new URLSearchParams();
       if (next.search) nextParams.set("search", next.search);
-      if (next.course) nextParams.set("course", next.course);
       if (next.status) nextParams.set("status", next.status);
       if (next.sort !== DEFAULT_SORT) nextParams.set("sort", next.sort);
       if (next.page > 1) nextParams.set("page", String(next.page));
@@ -170,7 +161,6 @@ function VideosContent() {
   const listParams: VideoListParams = useMemo(
     () => ({
       search: query.search || undefined,
-      courseTitle: query.course || undefined,
       status: query.status || undefined,
       sort: query.sort,
       page: query.page,
@@ -181,12 +171,25 @@ function VideosContent() {
 
   const { data, isLoading, isError, refetch } = useVideos(listParams);
 
+  const items = useMemo(() => {
+    let list = data?.items ?? [];
+    if (query.search.trim()) {
+      const s = query.search.toLowerCase().trim();
+      list = list.filter(
+        (it) =>
+          it.lessonTitle?.toLowerCase().includes(s) ||
+          it.videoTitle?.toLowerCase().includes(s) ||
+          it.videoId?.toLowerCase().includes(s)
+      );
+    }
+    return list;
+  }, [data?.items, query.search]);
+
   const total = data?.total ?? 0;
-  const items = data?.items ?? [];
   const totalPages = Math.ceil(total / query.pageSize) || 1;
   const fromIndex = total === 0 ? 0 : (query.page - 1) * query.pageSize + 1;
   const toIndex = Math.min(query.page * query.pageSize, total);
-  const isFiltered = Boolean(query.search || query.course || query.status);
+  const isFiltered = Boolean(query.search || query.status);
 
   return (
     <div className="space-y-5">
@@ -226,48 +229,34 @@ function VideosContent() {
         </div>
       )}
 
-      {/* FILTER BAR VỚI SELECT DROPDOWN DÙNG CHUNG BO GÓC MỀM MẠI */}
+      {/* FILTER BAR THIẾT KẾ TINH GỌN, RÕ RÀNG */}
       <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-xs flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 flex-wrap">
-          {extendedFiltersEnabled && (
-            <>
-              <div className="relative flex-1 min-w-[240px] max-w-sm">
-                <MagnifyingGlass
-                  size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
-                />
-                <input
-                  type="text"
-                  value={query.search}
-                  onChange={(e) => updateQuery({ search: e.target.value, page: 1 })}
-                  placeholder="Tìm tên video, bài học liên kết..."
-                  className="w-full pl-8 pr-8 py-2 text-xs bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:border-purple-600 focus:bg-white text-neutral-800 transition"
-                />
-                {query.search && (
-                  <button
-                    type="button"
-                    onClick={() => updateQuery({ search: "", page: 1 })}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 p-0.5"
-                    title="Xóa tìm kiếm"
-                  >
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
+          <div className="relative flex-1 min-w-[260px] max-w-md">
+            <MagnifyingGlass
+              size={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+            />
+            <input
+              type="text"
+              value={query.search}
+              onChange={(e) => updateQuery({ search: e.target.value, page: 1 })}
+              placeholder="Tìm tên video, bài học liên kết..."
+              className="w-full pl-8 pr-8 py-2 text-xs bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:border-purple-600 focus:bg-white text-neutral-800 transition"
+            />
+            {query.search && (
+              <button
+                type="button"
+                onClick={() => updateQuery({ search: "", page: 1 })}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 p-0.5"
+                title="Xóa tìm kiếm"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
 
-              <div className="w-56">
-                <SelectDropdown
-                  value={query.course}
-                  placeholder="Tất cả khóa học"
-                  options={COURSE_OPTIONS}
-                  onChange={(val) => updateQuery({ course: val, page: 1 })}
-                  fullWidth
-                />
-              </div>
-            </>
-          )}
-
-          <div className="w-52">
+          <div className="w-56">
             <SelectDropdown
               value={query.status}
               placeholder="Tất cả trạng thái"
@@ -280,7 +269,7 @@ function VideosContent() {
           {isFiltered && (
             <button
               type="button"
-              onClick={() => updateQuery({ search: "", course: "", status: "", page: 1 })}
+              onClick={() => updateQuery({ search: "", status: "", page: 1 })}
               className="px-3 py-2 rounded-xl text-neutral-500 hover:text-purple-700 hover:bg-purple-50 text-xs font-medium transition flex items-center gap-1.5 cursor-pointer border border-transparent hover:border-purple-200"
             >
               <ArrowCounterClockwise size={13} />
@@ -290,17 +279,16 @@ function VideosContent() {
         </div>
       </div>
 
-      {/* DATA TABLE THIẾT KẾ CÂN ĐỐI 6 CỘT - CĂN GIỮA TIÊU ĐỀ KHÔNG RỚT DÒNG, CỘT KHÔNG VA CHẠM */}
+      {/* DATA TABLE THIẾT KẾ CÂN ĐỐI 5 CỘT - CĂN GIỮA TIÊU ĐỀ KHÔNG RỚT DÒNG, CỘT KHÔNG VA CHẠM */}
       <div className="bg-white rounded-xl border border-purple-100 shadow-xs overflow-visible">
         <div className="w-full overflow-x-auto custom-scrollbar">
-          <table className="w-full table-fixed text-left border-collapse min-w-[1150px]" aria-label="Bảng dữ liệu kho video">
+          <table className="w-full table-fixed text-left border-collapse min-w-[1000px]" aria-label="Bảng dữ liệu kho video">
             <thead>
               <tr className="bg-neutral-50 border-b border-neutral-200 text-xs font-semibold text-neutral-600 uppercase tracking-wider">
-                <th className="py-3.5 px-4 text-center w-[27%] whitespace-nowrap align-middle">Video &amp; Bài học</th>
-                <th className="py-3.5 px-4 text-center w-[20%] whitespace-nowrap align-middle">Khóa học</th>
-                <th className="py-3.5 px-4 text-center w-[10%] whitespace-nowrap align-middle">Dung lượng</th>
+                <th className="py-3.5 px-4 text-center w-[32%] whitespace-nowrap align-middle">Video &amp; Bài học</th>
+                <th className="py-3.5 px-4 text-center w-[23%] whitespace-nowrap align-middle">Khóa học</th>
                 <th className="py-3.5 px-4 text-center w-[16%] whitespace-nowrap align-middle">Trạng thái Pipeline</th>
-                <th className="py-3.5 px-4 text-center w-[10%] whitespace-nowrap align-middle">Ngày tải lên</th>
+                <th className="py-3.5 px-4 text-center w-[12%] whitespace-nowrap align-middle">Ngày tải lên</th>
                 <th className="py-3.5 px-4 text-center w-[17%] whitespace-nowrap align-middle">Thao tác</th>
               </tr>
             </thead>
@@ -323,9 +311,6 @@ function VideosContent() {
                       <div className="h-3 w-3/4 mx-auto bg-neutral-200 rounded" />
                     </td>
                     <td className="py-3.5 px-4 text-center align-middle">
-                      <div className="h-3 w-12 mx-auto bg-neutral-200 rounded" />
-                    </td>
-                    <td className="py-3.5 px-4 text-center align-middle">
                       <div className="h-3 w-16 mx-auto bg-neutral-200 rounded" />
                     </td>
                     <td className="py-3.5 px-4 text-center align-middle">
@@ -338,7 +323,7 @@ function VideosContent() {
                 ))
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center">
+                  <td colSpan={5} className="py-12 text-center">
                     {isFiltered ? (
                       <div className="space-y-3">
                         <p className="text-sm font-semibold text-neutral-700">Không tìm thấy video phù hợp</p>
@@ -358,7 +343,7 @@ function VideosContent() {
                         </div>
                         <h3 className="text-base font-bold text-neutral-900 mb-2">Chưa có video bài giảng nào</h3>
                         <p className="text-xs text-neutral-500 leading-relaxed max-w-sm mb-6">
-                          Hãy tải lên video bài giảng đầu tiên để hệ thống tự động xử lý HLS, phụ đề và nạp tri thức cho AI Trợ giảng.
+                          Hãy tải lên video bài giảng đầu tiên để hệ thống tự động xử lý video, tạo phụ đề và đồng bộ bài học cho Trợ giảng AI.
                         </p>
                         <Link
                           href="/videos/upload"
@@ -380,12 +365,12 @@ function VideosContent() {
                     <tr
                       key={row.videoId}
                       className={`transition ${isMenuOpen
-                          ? "bg-purple-50/40 relative z-30"
-                          : row.overallStatus === "processing"
-                            ? "bg-amber-50/15 hover:bg-amber-50/30"
-                            : row.overallStatus === "failed"
-                              ? "bg-rose-50/15 hover:bg-rose-50/30"
-                              : "hover:bg-purple-50/30"
+                        ? "bg-purple-50/40 relative z-30"
+                        : row.overallStatus === "processing"
+                          ? "bg-amber-50/15 hover:bg-amber-50/30"
+                          : row.overallStatus === "failed"
+                            ? "bg-rose-50/15 hover:bg-rose-50/30"
+                            : "hover:bg-purple-50/30"
                         }`}
                     >
                       {/* CỘT 1: VIDEO & BÀI HỌC (28%) - CĂN GIỮA THEO CỘT, KHỐI NỘI DUNG 270PX CĂN TRÁI GỌN GÀNG */}
@@ -405,17 +390,13 @@ function VideosContent() {
                               >
                                 {row.videoTitle || row.lessonTitle}
                               </p>
-                              {row.courseTitle ? (
+                              {row.courseTitle && (
                                 <p
                                   className="text-[11px] text-neutral-400 truncate max-w-full mt-0.5"
                                   title={row.lessonTitle}
                                 >
                                   {row.lessonTitle}
                                 </p>
-                              ) : (
-                                <span className="text-[11px] text-neutral-400 block mt-0.5 whitespace-nowrap">
-                                  —
-                                </span>
                               )}
                             </div>
                           </div>
@@ -438,30 +419,23 @@ function VideosContent() {
                         </div>
                       </td>
 
-                      {/* CỘT 3: DUNG LƯỢNG (10%) - CĂN GIỮA HOÀN TOÀN, KHÔNG RỚT DÒNG */}
-                      <td className="py-3.5 px-4 text-center align-middle">
-                        <span className="font-medium text-neutral-700 text-xs tabular-nums whitespace-nowrap">
-                          {row.fileSizeMb ? `${row.fileSizeMb} MB` : "—"}
-                        </span>
-                      </td>
-
-                      {/* CỘT 4: TRẠNG THÁI PIPELINE (16%) - CĂN GIỮA HOÀN TOÀN, KHÔNG RỚT DÒNG */}
+                      {/* CỘT 3: TRẠNG THÁI PIPELINE (16%) - CĂN GIỮA HOÀN TOÀN, KHÔNG RỚT DÒNG */}
                       <td className="py-3.5 px-4 text-center align-middle">
                         <span className="whitespace-nowrap inline-block">
                           <PipelineStatusText status={row.overallStatus} />
                         </span>
                       </td>
 
-                      {/* CỘT 5: NGÀY TẢI LÊN (10%) - CĂN GIỮA HOÀN TOÀN, KHÔNG RỚT DÒNG */}
+                      {/* CỘT 4: NGÀY TẢI LÊN (12%) - CĂN GIỮA HOÀN TOÀN, KHÔNG RỚT DÒNG */}
                       <td className="py-3.5 px-4 text-center align-middle">
                         <span className="font-medium text-xs text-neutral-500 tabular-nums whitespace-nowrap">
                           {formatDateTime(row.uploadedAt).split(" ")[0]}
                         </span>
                       </td>
 
-                      {/* CỘT 6: THAO TÁC (17%) - NÚT HÀNH ĐỘNG RÕ RÀNG, CHỈ HIỆN MENU PHỤ KHI HOÀN TẤT HOẶC LỖI */}
-                      <td className={`py-3.5 pl-3 pr-2 text-center align-middle ${isMenuOpen ? "relative z-30" : ""}`}>
-                        <div className="relative flex items-center justify-center pr-8 min-h-[32px]">
+                      {/* CỘT 5: THAO TÁC (17%) - TOÀN BỘ NÚT CHÍNH CĂN GIỮA THẲNG HÀNG DỌC, MENU 3 CHẤM NẰM BÊN PHẢI NÚT KHÔNG LÀM LỆCH NÚT */}
+                      <td className={`py-3.5 px-4 text-center align-middle ${isMenuOpen ? "relative z-30" : ""}`}>
+                        <div className="relative inline-flex items-center justify-center min-h-[32px]">
                           {row.overallStatus === "failed" ? (
                             <button
                               type="button"
@@ -470,16 +444,15 @@ function VideosContent() {
                                 retryMutation.mutate(row.videoId);
                               }}
                               disabled={retryMutation.isPending}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border shadow-2xs font-semibold text-xs whitespace-nowrap transition active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer border-rose-200 bg-white text-rose-700 hover:bg-rose-50 hover:border-rose-300"
+                              className="inline-flex items-center justify-center gap-1.5 min-w-[100px] px-2.5 py-1 rounded-lg border shadow-2xs font-semibold text-xs whitespace-nowrap transition active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer border-rose-200 bg-white text-rose-700 hover:bg-rose-50 hover:border-rose-300"
                             >
                               <ArrowClockwise
                                 size={13}
                                 weight="bold"
-                                className={`shrink-0 ${
-                                  retryMutation.isPending && retryMutation.variables === row.videoId
-                                    ? "animate-spin"
-                                    : ""
-                                }`}
+                                className={`shrink-0 ${retryMutation.isPending && retryMutation.variables === row.videoId
+                                  ? "animate-spin"
+                                  : ""
+                                  }`}
                               />
                               <span>
                                 {retryMutation.isPending && retryMutation.variables === row.videoId
@@ -495,7 +468,7 @@ function VideosContent() {
                               return (
                                 <Link
                                   href={action.getHref(row.videoId)}
-                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border shadow-2xs font-semibold text-xs whitespace-nowrap transition active:scale-[0.98] cursor-pointer ${action.className}`}
+                                  className={`inline-flex items-center justify-center gap-1.5 min-w-[100px] px-2.5 py-1 rounded-lg border shadow-2xs font-semibold text-xs whitespace-nowrap transition active:scale-[0.98] cursor-pointer ${action.className}`}
                                 >
                                   <ActionIcon size={13} weight="bold" className="shrink-0" />
                                   <span>{action.label}</span>
@@ -505,7 +478,7 @@ function VideosContent() {
                           )}
 
                           {(row.overallStatus === "completed" || row.overallStatus === "failed") && (
-                            <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                            <div className="absolute left-full ml-1.5 top-1/2 -translate-y-1/2 flex items-center">
                               <VideoActionMenu
                                 video={row}
                                 isOpen={isMenuOpen}
