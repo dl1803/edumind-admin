@@ -106,7 +106,22 @@ function buildSeedSegments(version: number): TranscriptSegment[] {
 }
 
 function findVideo(videoId: string) {
-  return MOCK_VIDEOS.find((item) => item.videoId === videoId);
+  const found = MOCK_VIDEOS.find((item) => item.videoId === videoId);
+  if (found) return found;
+  if (videoId) {
+    return {
+      videoId,
+      lessonId: `les-${videoId.slice(0, 8)}`,
+      videoTitle: `Video ${videoId.slice(0, 8)}`,
+      lessonTitle: "Bài giảng",
+      courseTitle: "Khóa học",
+      overallStatus: "completed" as const,
+      thumbnailUrl: null,
+      durationSec: 560,
+      uploadedAt: new Date().toISOString(),
+    };
+  }
+  return undefined;
 }
 
 function getRecords(videoId: string): MockVersionRecord[] {
