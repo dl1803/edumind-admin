@@ -1,3 +1,5 @@
+import type { VideoOverallStatus } from "@/types/video.types";
+
 export interface TranscriptSegment {
   id: string;
   startMs: number;
@@ -22,6 +24,7 @@ export interface Transcript {
   version: number;
   previewUrl: string;
   segments: TranscriptSegment[];
+  pipelineStatus?: VideoOverallStatus;
 }
 
 export interface SaveTranscriptResult {

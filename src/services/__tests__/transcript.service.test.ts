@@ -209,6 +209,7 @@ describe("chế độ API thật", () => {
     expect(res?.lessonTitle).toBe("Bài 1");
     expect(res?.segments).toHaveLength(1);
     expect(res?.segments[0].text).toBe("Nội dung bài giảng");
+    expect(res?.pipelineStatus).toBe("completed");
   });
 
   it("getTranscript trả về segments rỗng khi bị 404 và ném lỗi khi 500 hoặc truyền version", async () => {
@@ -225,6 +226,15 @@ describe("chế độ API thật", () => {
     await expect(transcriptService.getTranscript("vid-x", 1)).rejects.toThrow(
       "Hợp đồng hiện tại chưa có API lấy transcript theo phiên bản."
     );
+  });
+
+  it("getTranscript giữ trạng thái pipeline đang xử lý khi chưa có transcript", async () => {
+    mockedFetchPipeline.mockResolvedValueOnce({ ...PIPELINE, overallStatus: "processing" });
+    mockedGet.mockRejectedValueOnce(createAxiosError(404));
+
+    const res = await transcriptService.getTranscript("vid-x");
+    expect(res?.segments).toEqual([]);
+    expect(res?.pipelineStatus).toBe("processing");
   });
 
   it("saveTranscript gửi PUT tới endpoint transcript và chuyển đổi ms sang giây", async () => {

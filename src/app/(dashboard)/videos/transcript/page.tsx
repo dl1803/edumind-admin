@@ -39,6 +39,7 @@ import {
   filterSegmentsByKeyword,
   findActiveSegmentId,
   hasTranscriptTextChanged,
+  isHlsUrl,
   TranscriptConflictError,
 } from "@/lib/transcript";
 import { formatDateTime } from "@/lib/utils";
@@ -48,9 +49,12 @@ import { SegmentList } from "@/components/transcript/SegmentList";
 import { TranscriptToolbar } from "@/components/transcript/TranscriptToolbar";
 import { VersionPanel } from "@/components/transcript/VersionPanel";
 import { VideoSummaryDrawer } from "@/components/video/VideoSummaryDrawer";
+import { isTranscriptMockEnabled } from "@/services/transcript.service";
 import type { Transcript, TranscriptSegment } from "@/types/transcript.types";
+import type { VideoOverallStatus } from "@/types/video.types";
 
 const SPLIT_LAYOUT = "grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,45fr)_minmax(0,55fr)]";
+const IN_PROGRESS_STATUSES: VideoOverallStatus[] = ["uploading", "uploaded", "processing"];
 
 function formatPlayerTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
@@ -71,9 +75,19 @@ interface MessageCardProps {
   description: string;
   actionHref: string;
   actionLabel: string;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-function MessageCard({ icon, title, description, actionHref, actionLabel }: MessageCardProps) {
+function MessageCard({
+  icon,
+  title,
+  description,
+  actionHref,
+  actionLabel,
+  onRefresh,
+  isRefreshing = false,
+}: MessageCardProps) {
   return (
     <div className="flex min-h-[calc(100vh-220px)] flex-col items-center justify-center p-6">
       <div className="w-full max-w-md space-y-4 rounded-2xl border border-purple-100 bg-white p-8 text-center shadow-xs">
@@ -82,7 +96,18 @@ function MessageCard({ icon, title, description, actionHref, actionLabel }: Mess
         </div>
         <h2 className="text-base font-bold text-neutral-900">{title}</h2>
         <p className="text-xs leading-relaxed text-neutral-500">{description}</p>
-        <div className="pt-1">
+        <div className="flex items-center justify-center gap-2 pt-1">
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-4 text-xs font-semibold text-neutral-700 transition hover:bg-purple-50 hover:text-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ArrowClockwise size={14} weight="bold" className={isRefreshing ? "animate-spin" : undefined} />
+              <span>{isRefreshing ? "Đang làm mới..." : "Làm mới"}</span>
+            </button>
+          )}
           <Link
             href={actionHref}
             className="inline-flex h-9 items-center justify-center rounded-xl px-5 text-xs font-semibold text-white transition grad-nebula shadow-nebula hover:opacity-95"
@@ -144,6 +169,13 @@ function TranscriptWorkspace({
   const [playbackRate, setPlaybackRate] = useState(1.0);
 
   const totalDuration = duration > 0 ? duration : 560;
+
+  const isMock = isTranscriptMockEnabled();
+  const previewSrc =
+    !isMock && transcript.previewUrl && !isHlsUrl(transcript.previewUrl)
+      ? transcript.previewUrl
+      : null;
+  const hasPlayer = isMock || previewSrc !== null;
 
   const visibleSegments = useMemo(
     () => (isEditing ? segments : filterSegmentsByKeyword(segments, keyword)),
@@ -210,6 +242,14 @@ function TranscriptWorkspace({
         const next = prev + 0.25 * playbackRate;
         const total = totalDuration > 0 ? totalDuration : 560;
         if (next >= total) {
+          const video = videoRef.current;
+          if (video) {
+            try {
+              video.pause();
+            } catch {
+              // ignore
+            }
+          }
           setIsPlaying(false);
           return total;
         }
@@ -252,14 +292,26 @@ function TranscriptWorkspace({
       const video = videoRef.current;
       if (video) {
         if (nextPlaying) {
+          if (currentTime >= totalDuration || video.ended) {
+            try {
+              video.currentTime = 0;
+            } catch {
+              // ignore
+            }
+            setCurrentTime(0);
+          }
           video.play().catch(() => {});
         } else {
           video.pause();
         }
+      } else {
+        if (nextPlaying && currentTime >= totalDuration) {
+          setCurrentTime(0);
+        }
       }
       return nextPlaying;
     });
-  }, []);
+  }, [currentTime, totalDuration]);
 
   const seekDelta = useCallback(
     (seconds: number) => {
@@ -331,7 +383,14 @@ function TranscriptWorkspace({
   return (
     <div className={SPLIT_LAYOUT}>
       <div className="flex flex-col gap-4 self-start">
-        <div className="bg-neutral-950 rounded-2xl overflow-hidden border border-neutral-800 shadow-md relative group">
+        {!hasPlayer && (
+          <div className="rounded-2xl border border-purple-100 bg-white p-4 text-xs text-neutral-500 shadow-xs">
+            Chưa có bản xem trước phù hợp của video. Bạn vẫn có thể duyệt và tìm kiếm nội dung phụ đề.
+          </div>
+        )}
+        <div
+          className={`bg-neutral-950 rounded-2xl overflow-hidden border border-neutral-800 shadow-md relative group isolate${hasPlayer ? "" : " hidden"}`}
+        >
           <div
             className="w-full aspect-video bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 flex flex-col justify-between p-5 text-white relative overflow-hidden cursor-pointer select-none"
             onClick={togglePlay}
@@ -340,7 +399,9 @@ function TranscriptWorkspace({
               <span className="font-bold flex items-center gap-1.5 text-purple-300 truncate max-w-[70%]">
                 <Code size={14} weight="fill" />
                 <span>
-                  {transcript.lessonTitle || transcript.videoTitle || "Python 3.11 Environment Setup"}
+                  {transcript.lessonTitle ||
+                    transcript.videoTitle ||
+                    (isMock ? "Python 3.11 Environment Setup" : "")}
                 </span>
               </span>
               <div className="flex items-center gap-2">
@@ -354,54 +415,66 @@ function TranscriptWorkspace({
                     Tạm dừng
                   </span>
                 )}
-                <span className="px-2 py-0.5 rounded bg-white/10 text-[10px] font-mono tabular-nums text-white/90">
-                  1080p 60fps
-                </span>
-              </div>
-            </div>
-
-            <div className="my-auto font-mono text-xs bg-black/60 p-4 rounded-xl border border-white/10 space-y-1.5 max-w-md mx-auto shadow-lg backdrop-blur-xs pointer-events-none z-10 transition">
-              <div className="flex items-center justify-between text-purple-400 pb-1 border-b border-white/10 text-[11px]">
-                <span># Kiểm tra môi trường Python 3.11</span>
-                {isPlaying && (
-                  <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Live {playbackRate}x
+                {isMock && (
+                  <span className="px-2 py-0.5 rounded bg-white/10 text-[10px] font-mono tabular-nums text-white/90">
+                    1080p 60fps
                   </span>
                 )}
               </div>
-              <p className="text-emerald-400 flex items-center gap-1.5 pt-1">
-                <span>$ python --version</span>
-                {isPlaying && <span className="inline-block w-1.5 h-3.5 bg-emerald-400 animate-pulse" />}
-              </p>
-              <p className="text-neutral-300 font-mono">Python 3.11.8 (tags/v3.11.8:d7440f9)</p>
-              <p className="text-emerald-400 mt-2">
-                $ code . <span className="text-neutral-400 font-mono"># Khởi động VS Code</span>
-              </p>
             </div>
+
+            {isMock && (
+              <div className="my-auto font-mono text-xs bg-black/60 p-4 rounded-xl border border-white/10 space-y-1.5 max-w-md mx-auto shadow-lg backdrop-blur-xs pointer-events-none z-10 transition">
+                <div className="flex items-center justify-between text-purple-400 pb-1 border-b border-white/10 text-[11px]">
+                  <span># Kiểm tra môi trường Python 3.11</span>
+                  {isPlaying && (
+                    <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Live {playbackRate}x
+                    </span>
+                  )}
+                </div>
+                <p className="text-emerald-400 flex items-center gap-1.5 pt-1">
+                  <span>$ python --version</span>
+                  {isPlaying && <span className="inline-block w-1.5 h-3.5 bg-emerald-400 animate-pulse" />}
+                </p>
+                <p className="text-neutral-300 font-mono">Python 3.11.8 (tags/v3.11.8:d7440f9)</p>
+                <p className="text-emerald-400 mt-2">
+                  $ code . <span className="text-neutral-400 font-mono"># Khởi động VS Code</span>
+                </p>
+              </div>
+            )}
 
             <video
               ref={videoRef}
               preload="metadata"
               playsInline
               muted={isMuted}
+              src={previewSrc ?? undefined}
               onLoadedMetadata={handleLoadedMetadata}
-              onEnded={() => setIsPlaying(false)}
+              onEnded={() => {
+                setIsPlaying(false);
+                setCurrentTime(totalDuration);
+              }}
               className="absolute inset-0 w-full h-full object-contain pointer-events-none opacity-30 z-0"
             >
-              <source src="/sample-video.mp4" type="video/mp4" />
-              <source src={transcript.previewUrl} type="video/mp4" />
+              {isMock && (
+                <>
+                  <source src="/sample-video.mp4" type="video/mp4" />
+                  <source src={transcript.previewUrl} type="video/mp4" />
+                </>
+              )}
             </video>
 
             {!isPlaying && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/25 hover:bg-black/35 transition group z-20">
+              <div className="absolute inset-0 flex items-center justify-center bg-black/25 hover:bg-black/35 transition group z-10">
                 <div className="w-14 h-14 rounded-full bg-purple-600/90 text-white flex items-center justify-center text-2xl shadow-lg group-hover:scale-110 transition">
                   <Play size={24} weight="fill" />
                 </div>
               </div>
             )}
 
-            <div className="absolute bottom-3 inset-x-0 text-center px-4 pointer-events-none z-20">
+            <div className="absolute bottom-3 inset-x-0 text-center px-4 pointer-events-none z-10">
               <span className="inline-block bg-black/85 text-white text-xs px-3.5 py-1.5 rounded-lg border border-white/15 font-medium max-w-[92%] shadow-md whitespace-pre-wrap leading-relaxed">
                 {activeSegment ? activeSegment.text : "— Đang chờ phát —"}
               </span>
@@ -492,35 +565,41 @@ function TranscriptWorkspace({
         <div className="p-4 bg-white rounded-2xl border border-purple-100 shadow-xs space-y-2.5">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-neutral-900 text-xs">Thông tin bài học liên kết</h3>
-            <span className="text-xs font-semibold text-emerald-700">Đã xuất bản</span>
+            {isMock && <span className="text-xs font-semibold text-emerald-700">Đã xuất bản</span>}
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-purple-100/60">
-            <div>
-              <span className="text-neutral-500 text-[11px] block">Khóa học</span>
-              <span
-                className="font-semibold text-neutral-900 truncate block"
-                title={transcript.courseTitle}
-              >
-                {transcript.courseTitle || "Nhập môn Lập trình Python"}
-              </span>
-            </div>
+            {(isMock || transcript.courseTitle) && (
+              <div>
+                <span className="text-neutral-500 text-[11px] block">Khóa học</span>
+                <span
+                  className="font-semibold text-neutral-900 truncate block"
+                  title={transcript.courseTitle}
+                >
+                  {transcript.courseTitle || "Nhập môn Lập trình Python"}
+                </span>
+              </div>
+            )}
             <div>
               <span className="text-neutral-500 text-[11px] block">Bài học</span>
               <span
                 className="font-semibold text-neutral-900 truncate block"
                 title={transcript.lessonTitle}
               >
-                {transcript.lessonTitle || "Bài 1.1: Cài đặt Python 3.11"}
+                {transcript.lessonTitle || (isMock ? "Bài 1.1: Cài đặt Python 3.11" : "—")}
               </span>
             </div>
-            <div>
-              <span className="text-neutral-500 text-[11px] block">Giảng viên phụ trách</span>
-              <span className="font-semibold text-neutral-900">TS. Nguyễn Văn A</span>
-            </div>
-            <div>
-              <span className="text-neutral-500 text-[11px] block">Tình trạng phụ đề</span>
-              <span className="font-semibold text-purple-700">Tự động nhận diện từ âm thanh</span>
-            </div>
+            {isMock && (
+              <div>
+                <span className="text-neutral-500 text-[11px] block">Giảng viên phụ trách</span>
+                <span className="font-semibold text-neutral-900">TS. Nguyễn Văn A</span>
+              </div>
+            )}
+            {isMock && (
+              <div>
+                <span className="text-neutral-500 text-[11px] block">Tình trạng phụ đề</span>
+                <span className="font-semibold text-purple-700">Tự động nhận diện từ âm thanh</span>
+              </div>
+            )}
           </div>
 
           <div className="pt-2 border-t border-neutral-100 flex items-center justify-between">
@@ -596,7 +675,13 @@ function TranscriptWorkspace({
 function TranscriptContent() {
   const searchParams = useSearchParams();
   const videoId = searchParams.get("videoId")?.trim() || null;
-  const { data, isLoading, isError, refetch: refetchTranscript } = useTranscript(videoId);
+  const {
+    data,
+    isLoading,
+    isError,
+    isFetching,
+    refetch: refetchTranscript,
+  } = useTranscript(videoId);
   const {
     data: versions,
     isLoading: isVersionsLoading,
@@ -835,33 +920,54 @@ function TranscriptContent() {
     />
   );
 
-  if (!videoId || (!isLoading && (data === null || isError))) {
-    return (
-      <>
-        {topBar}
-        <MessageCard
-          icon={<WarningCircle size={28} weight="fill" />}
-          title={isError ? "Lỗi tải dữ liệu phụ đề" : "Chưa có dữ liệu phụ đề"}
-          description={
-            isError
-              ? "Đã xảy ra lỗi khi tải dữ liệu phụ đề. Vui lòng thử lại sau."
-              : videoId
-              ? "Video này chưa có phụ đề hoặc bài học chưa hoàn tất bước tạo phụ đề."
-              : "Vui lòng chọn một video từ kho bài học để duyệt phụ đề."
-          }
-          actionHref={videoId ? `/videos/pipeline?videoId=${encodeURIComponent(videoId)}` : "/videos"}
-          actionLabel={videoId ? "Xem tiến trình xử lý" : "Về kho video bài học"}
-        />
-      </>
-    );
-  }
-
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <div className="mx-auto max-w-[1440px]">
         {topBar}
         <TranscriptSkeleton />
       </div>
+    );
+  }
+
+  if (isError || !videoId || !data) {
+    return (
+      <>
+        {topBar}
+        <MessageCard
+          icon={<WarningCircle size={28} weight="fill" />}
+          title={isError ? "Lỗi tải dữ liệu phụ đề" : "Không tìm thấy thông tin video"}
+          description={
+            isError
+              ? "Đã xảy ra lỗi khi tải dữ liệu phụ đề. Vui lòng thử lại sau."
+              : videoId
+              ? "Mã video không tồn tại hoặc đã bị xóa khỏi hệ thống."
+              : "Vui lòng chọn một video từ kho bài học để duyệt phụ đề."
+          }
+          actionHref="/videos"
+          actionLabel="Về kho video bài học"
+        />
+      </>
+    );
+  }
+
+  if (
+    data.segments.length === 0 &&
+    data.pipelineStatus !== undefined &&
+    IN_PROGRESS_STATUSES.includes(data.pipelineStatus)
+  ) {
+    return (
+      <>
+        {topBar}
+        <MessageCard
+          icon={<Article size={28} weight="fill" />}
+          title="Phụ đề đang được tạo"
+          description="Video đang trong quá trình xử lý. Phụ đề sẽ xuất hiện sau khi hoàn tất, bạn có thể làm mới để kiểm tra lại."
+          actionHref={`/videos/pipeline?videoId=${encodeURIComponent(data.videoId)}`}
+          actionLabel="Xem tiến trình xử lý"
+          onRefresh={() => void refetchTranscript()}
+          isRefreshing={isFetching}
+        />
+      </>
     );
   }
 
@@ -904,15 +1010,17 @@ function TranscriptContent() {
           ) : null
         }
         sidePanel={
-          <VersionPanel
-            versions={versions ?? []}
-            currentVersion={currentVersion}
-            selectedVersion={viewVersion ?? currentVersion}
-            isLoading={isVersionsLoading}
-            disabledReason={lockReason}
-            onSelect={handleSelectVersion}
-            onRestore={setRestoreTarget}
-          />
+          isVersionsLoading || (versions?.length ?? 0) > 0 ? (
+            <VersionPanel
+              versions={versions ?? []}
+              currentVersion={currentVersion}
+              selectedVersion={viewVersion ?? currentVersion}
+              isLoading={isVersionsLoading}
+              disabledReason={lockReason}
+              onSelect={handleSelectVersion}
+              onRestore={setRestoreTarget}
+            />
+          ) : null
         }
         onOpenSummary={() => setIsSummaryOpen(true)}
       />

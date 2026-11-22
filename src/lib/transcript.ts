@@ -60,6 +60,12 @@ export function splitByKeyword(text: string, keyword: string): HighlightPart[] {
   return parts;
 }
 
+const HLS_URL_PATTERN = /\.m3u8(?:$|[?#])/i;
+
+export function isHlsUrl(url: string): boolean {
+  return HLS_URL_PATTERN.test(url);
+}
+
 export const TRANSCRIPT_TEXT_MAX_LENGTH = 1000;
 export const TRANSCRIPT_TIME_ERROR = "Mốc thời gian không hợp lệ hoặc bị đè lên mốc khác";
 export const TRANSCRIPT_TEXT_EMPTY_ERROR = "Nội dung lời thoại không được để trống";
