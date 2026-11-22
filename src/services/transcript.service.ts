@@ -16,6 +16,7 @@ import type {
   TranscriptSegment,
   TranscriptVersion,
 } from "@/types/transcript.types";
+import type { VideoOverallStatus } from "@/types/video.types";
 
 interface ValidRawSegment {
   start: number;
@@ -27,6 +28,7 @@ interface TranscriptContext {
   videoId: string;
   lessonId: string;
   lessonTitle: string;
+  pipelineStatus?: VideoOverallStatus;
 }
 
 export function isTranscriptMockEnabled(): boolean {
@@ -87,6 +89,7 @@ export function mapTranscriptResponse(
     version: typeof payload.version === "number" ? payload.version : 0,
     previewUrl: payload.hls_stream_url ?? "",
     segments,
+    pipelineStatus: context.pipelineStatus,
   };
 }
 
@@ -108,6 +111,7 @@ async function fetchRealTranscript(videoId: string): Promise<Transcript | null> 
     videoId,
     lessonId: pipeline.lessonId,
     lessonTitle: pipeline.lessonTitle,
+    pipelineStatus: pipeline.overallStatus,
   };
   try {
     const response = await apiClient.get<BackendTranscriptResponse>(
