@@ -8,6 +8,42 @@ import type {
   TranscriptSegment,
 } from "@/types/transcript.types";
 
+interface SaveErrorLike {
+  message?: string;
+  response?: {
+    status?: number;
+    data?: {
+      message?: string;
+      detail?: string;
+      error?: { message?: string };
+    };
+  };
+}
+
+const SAVE_FORBIDDEN_MESSAGE = "Không có quyền";
+const SAVE_VALIDATION_FALLBACK_MESSAGE =
+  "Dữ liệu phụ đề không hợp lệ. Vui lòng kiểm tra lại các đoạn.";
+const SAVE_GENERIC_MESSAGE = "Không thể lưu phụ đề. Vui lòng thử lại sau.";
+
+export function resolveSaveErrorMessage(error: unknown): string {
+  const apiError = error as SaveErrorLike | null;
+  const status = apiError?.response?.status;
+  if (status === 403) return SAVE_FORBIDDEN_MESSAGE;
+  if (status === 400) {
+    const message =
+      apiError?.response?.data?.error?.message ||
+      apiError?.response?.data?.message ||
+      apiError?.response?.data?.detail;
+    return typeof message === "string" && message.trim()
+      ? message
+      : SAVE_VALIDATION_FALLBACK_MESSAGE;
+  }
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return apiError?.message || SAVE_GENERIC_MESSAGE;
+}
+
 export function useTranscriptActions(videoId: string | null) {
   const queryClient = useQueryClient();
   const normalizedId = videoId?.trim() || null;
@@ -17,6 +53,7 @@ export function useTranscriptActions(videoId: string | null) {
       current ? { ...current, version: result.version, segments: result.segments } : current
     );
     queryClient.invalidateQueries({ queryKey: ["transcript-versions", normalizedId] });
+    queryClient.invalidateQueries({ queryKey: ["transcript", normalizedId] });
   };
 
   const save = useMutation({
@@ -39,7 +76,7 @@ export function useTranscriptActions(videoId: string | null) {
     },
     onError: (error) => {
       if (error instanceof TranscriptConflictError) return;
-      toast.error("Không thể lưu phụ đề. Vui lòng thử lại sau.");
+      toast.error(resolveSaveErrorMessage(error));
     },
   });
 
